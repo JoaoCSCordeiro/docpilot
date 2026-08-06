@@ -13,6 +13,9 @@ class Settings:
     embedding_model_name: str = os.getenv(
         "EMBEDDING_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2"
     )
+    reranker_model_name: str = os.getenv(
+        "RERANKER_MODEL_NAME", "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    )
 
     retrieval_top_k: int = int(os.getenv("RETRIEVAL_TOP_K", "5"))
     confidence_threshold: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.5"))
