@@ -4,6 +4,9 @@ __pycache__/
 .env
 *.egg-info/
 .pytest_cache/
-.terraform/
-*.tfstate
+.terraform/1
 *.tfstate.backup
+
+# Instrucoes internas de desenvolvimento (Claude Code) - nao publicas
+CLAUDE.md
+docs/plano-blocos.md
