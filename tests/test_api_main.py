@@ -1,7 +1,8 @@
+import mongomock
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import app, get_graph
+from src.api.main import app, get_graph, get_query_log_collection
 
 
 class FakeGraph:
@@ -14,6 +15,9 @@ class FakeGraph:
 
 @pytest.fixture
 def client() -> TestClient:
+    app.dependency_overrides[get_query_log_collection] = (
+        lambda: mongomock.MongoClient()["test_db"]["query_traces"]
+    )
     return TestClient(app)
 
 
@@ -29,7 +33,12 @@ def clear_overrides():
 
 def test_query_endpoint_returns_confident_answer(client: TestClient) -> None:
     _override_graph(
-        {"answer": "FastAPI e uma framework web para Python.", "is_confident": True, "confidence": 0.83}
+        {
+            "query": "O que e o FastAPI?",
+            "answer": "FastAPI e uma framework web para Python.",
+            "is_confident": True,
+            "confidence": 0.83,
+        }
     )
 
     response = client.post("/query", json={"question": "O que e o FastAPI?"})
@@ -44,6 +53,7 @@ def test_query_endpoint_returns_confident_answer(client: TestClient) -> None:
 def test_query_endpoint_returns_refusal(client: TestClient) -> None:
     _override_graph(
         {
+            "query": "Qual e a capital da Mongolia?",
             "answer": "Não tenho informação suficiente para responder com confiança.",
             "is_confident": False,
             "confidence": 0.02,

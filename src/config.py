@@ -10,6 +10,9 @@ class Settings:
     qdrant_port: int = int(os.getenv("QDRANT_PORT", "6333"))
     qdrant_collection_name: str = os.getenv("QDRANT_COLLECTION_NAME", "docpilot")
 
+    mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    mongo_db_name: str = os.getenv("MONGO_DB_NAME", "docpilot")
+
     embedding_model_name: str = os.getenv(
         "EMBEDDING_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2"
     )

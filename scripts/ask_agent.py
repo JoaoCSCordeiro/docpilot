@@ -4,6 +4,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.agent.graph import build_default_graph  # noqa: E402
+from src.agent.query_log import (  # noqa: E402
+    get_mongo_client,
+    get_query_traces_collection,
+    save_query_trace,
+)
 from src.config import settings  # noqa: E402
 
 
@@ -19,6 +24,9 @@ def main() -> None:
     query = " ".join(sys.argv[1:])
     graph = build_default_graph()
     result = graph.invoke({"query": query})
+
+    query_log = get_query_traces_collection(get_mongo_client())
+    save_query_trace(query_log, result)
 
     print(f"QUERY: {query}")
     print(f"Confianca: {result['confidence']:.4f} (threshold={settings.confidence_threshold})")

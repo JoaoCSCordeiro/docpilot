@@ -1,6 +1,8 @@
 langgraph>=0.2,<0.3
 langchain-groq>=0.2,<0.3
 qdrant-client>=1.9,<2.0
+pymongo>=4.8,<5.0
+mongomock>=4.1,<5.0
 sentence-transformers>=3.0,<4.0
 fastapi>=0.111,<1.0
 uvicorn[standard]>=0.30,<1.0
