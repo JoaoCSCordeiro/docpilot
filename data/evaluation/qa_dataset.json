@@ -1,0 +1,152 @@
+[
+  {
+    "id": 1,
+    "question": "Que biblioteca é usada para detetar a mão e extrair os pontos-chave (landmarks) no tradutor de língua gestual?",
+    "expected_sources": ["asl-translator-readme.md"],
+    "expected_answer_hint": "MediaPipe Hands"
+  },
+  {
+    "id": 2,
+    "question": "Quantos landmarks o MediaPipe devolve para cada mão detetada?",
+    "expected_sources": ["asl-translator-readme.md"],
+    "expected_answer_hint": "21 landmarks (42 valores numéricos com x, y)"
+  },
+  {
+    "id": 3,
+    "question": "Que classificador de Machine Learning tradicional é usado para reconhecer as letras gestuais?",
+    "expected_sources": ["asl-translator-readme.md"],
+    "expected_answer_hint": "RandomForestClassifier (Scikit-Learn)"
+  },
+  {
+    "id": 4,
+    "question": "Como é dividido o dataset entre treino e teste no treino do classificador de gestos?",
+    "expected_sources": ["asl-translator-readme.md"],
+    "expected_answer_hint": "80% treino / 20% teste, estratificado por classe"
+  },
+  {
+    "id": 5,
+    "question": "Que tecla se deve premir para sair da janela de vídeo da tradução em tempo real?",
+    "expected_sources": ["asl-translator-readme.md"],
+    "expected_answer_hint": "a tecla 'q'"
+  },
+  {
+    "id": 6,
+    "question": "Que ferramentas o Financial Crew usa para obter dados de mercado e notícias?",
+    "expected_sources": ["financial-crew-readme.md"],
+    "expected_answer_hint": "yfinance para dados de mercado, ddgs (DuckDuckGo search) para notícias"
+  },
+  {
+    "id": 7,
+    "question": "Qual é o papel do agente Orchestrator/Critic no Financial Crew?",
+    "expected_sources": ["financial-crew-readme.md"],
+    "expected_answer_hint": "valida os outputs dos outros dois agentes, rejeita afirmações sem proveniência, consolida num relatório JSON único; não gera novos factos"
+  },
+  {
+    "id": 8,
+    "question": "Que modelo Groq é usado por omissão no Financial Crew, depois da descontinuação do llama-3.3-70b-versatile?",
+    "expected_sources": ["financial-crew-readme.md"],
+    "expected_answer_hint": "openai/gpt-oss-120b"
+  },
+  {
+    "id": 9,
+    "question": "Quais são os limites do free tier da Groq mencionados no Financial Crew?",
+    "expected_sources": ["financial-crew-readme.md"],
+    "expected_answer_hint": "8000 tokens por minuto e 200000 tokens por dia"
+  },
+  {
+    "id": 10,
+    "question": "Como é que o Financial Crew evita repetir análises recentes do mesmo ativo?",
+    "expected_sources": ["financial-crew-readme.md"],
+    "expected_answer_hint": "cache SQLite com TTL de 15 minutos; run_analysis verifica o cache primeiro"
+  },
+  {
+    "id": 11,
+    "question": "Que biblioteca o Financial Crew usa para retries automáticos com backoff exponencial em erros de rede/rate limit?",
+    "expected_sources": ["financial-crew-readme.md"],
+    "expected_answer_hint": "tenacity"
+  },
+  {
+    "id": 12,
+    "question": "Que tecnologia de mensageria assíncrona o TrendPulse AI usa entre o ML Engine e o Core Backend?",
+    "expected_sources": ["trendpulse-ai-readme.md"],
+    "expected_answer_hint": "RabbitMQ"
+  },
+  {
+    "id": 13,
+    "question": "Que modelo scikit-learn o TrendPulse AI usa para prever o retorno do dia seguinte?",
+    "expected_sources": ["trendpulse-ai-readme.md"],
+    "expected_answer_hint": "RandomForestRegressor"
+  },
+  {
+    "id": 14,
+    "question": "Porque é que o TrendPulse AI usa TimescaleDB em vez de PostgreSQL simples?",
+    "expected_sources": ["trendpulse-ai-readme.md"],
+    "expected_answer_hint": "extensão para séries temporais que converte a tabela predictions numa hypertable particionada por generated_at, mantendo queries rápidas com milhões de linhas"
+  },
+  {
+    "id": 15,
+    "question": "Como é calculada a confiança da previsão no TrendPulse AI?",
+    "expected_sources": ["trendpulse-ai-readme.md"],
+    "expected_answer_hint": "derivada da variância entre as árvores da RandomForest — mais concordância entre árvores, mais confiança"
+  },
+  {
+    "id": 16,
+    "question": "Que fallback o TrendPulse AI usa quando o modelo treinado não existe?",
+    "expected_sources": ["trendpulse-ai-readme.md"],
+    "expected_answer_hint": "heurístico de cruzamento de médias móveis SMA 20/50, com badge amarelo de aviso"
+  },
+  {
+    "id": 17,
+    "question": "Onde ficam disponíveis as métricas Prometheus e Grafana do TrendPulse AI?",
+    "expected_sources": ["trendpulse-ai-readme.md"],
+    "expected_answer_hint": "Prometheus em localhost:9090, Grafana em localhost:3000"
+  },
+  {
+    "id": 18,
+    "question": "Em que duas bibliotecas o FastAPI se baseia, segundo a secção de Requirements?",
+    "expected_sources": ["external/FastAPI-readme.md"],
+    "expected_answer_hint": "Starlette (parte web) e Pydantic (parte de dados)"
+  },
+  {
+    "id": 19,
+    "question": "Que comando é usado para instalar o FastAPI com o uv?",
+    "expected_sources": ["external/FastAPI-readme.md"],
+    "expected_answer_hint": "uv add \"fastapi[standard]\""
+  },
+  {
+    "id": 20,
+    "question": "Que servidor o FastAPI usa por omissão para correr a aplicação?",
+    "expected_sources": ["external/FastAPI-readme.md"],
+    "expected_answer_hint": "Uvicorn"
+  },
+  {
+    "id": 21,
+    "question": "Que dois sistemas de documentação interativa o FastAPI gera automaticamente?",
+    "expected_sources": ["external/FastAPI-readme.md"],
+    "expected_answer_hint": "Swagger UI (/docs) e ReDoc (/redoc)"
+  },
+  {
+    "id": 22,
+    "question": "Quantos downloads por semana tem aproximadamente o pacote Requests, segundo o README?",
+    "expected_sources": ["external/psfrequests-readme.md"],
+    "expected_answer_hint": "cerca de 300M downloads/semana"
+  },
+  {
+    "id": 23,
+    "question": "A partir de que versão de Python o Requests é oficialmente suportado?",
+    "expected_sources": ["external/psfrequests-readme.md"],
+    "expected_answer_hint": "Python 3.10+"
+  },
+  {
+    "id": 24,
+    "question": "Que flag extra pode ser necessária ao clonar o repositório do Requests para evitar um erro de timestamp?",
+    "expected_sources": ["external/psfrequests-readme.md"],
+    "expected_answer_hint": "-c fetch.fsck.badTimezone=ignore"
+  },
+  {
+    "id": 25,
+    "question": "Que tipos de autenticação HTTP o Requests suporta, segundo a lista de funcionalidades?",
+    "expected_sources": ["external/psfrequests-readme.md"],
+    "expected_answer_hint": "Basic & Digest Authentication"
+  }
+]

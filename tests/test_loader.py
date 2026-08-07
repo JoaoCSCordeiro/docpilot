@@ -23,7 +23,7 @@ def test_load_documents_returns_content_and_relative_source(tmp_path: Path) -> N
 
     assert len(documents) == 1
     assert documents[0].content == "texto aninhado"
-    assert documents[0].source == str(Path("sub") / "nested.md")
+    assert documents[0].source == "sub/nested.md"
 
 
 def test_load_documents_empty_directory_returns_empty_list(tmp_path: Path) -> None:

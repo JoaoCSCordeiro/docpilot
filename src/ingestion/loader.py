@@ -16,5 +16,7 @@ def load_documents(raw_dir: str | Path) -> list[Document]:
     for path in sorted(raw_dir.rglob("*")):
         if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS:
             content = path.read_text(encoding="utf-8")
-            documents.append(Document(source=str(path.relative_to(raw_dir)), content=content))
+            documents.append(
+                Document(source=path.relative_to(raw_dir).as_posix(), content=content)
+            )
     return documents
