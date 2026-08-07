@@ -22,6 +22,8 @@ class Settings:
 
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    groq_max_calls_per_minute: int = int(os.getenv("GROQ_MAX_CALLS_PER_MINUTE", "20"))
+    groq_max_tokens: int = int(os.getenv("GROQ_MAX_TOKENS", "512"))
 
     api_host: str = os.getenv("API_HOST", "0.0.0.0")
     api_port: int = int(os.getenv("API_PORT", "8000"))

@@ -1,10 +1,10 @@
 from typing import TypedDict
 
-from langchain_groq import ChatGroq
 from langgraph.graph import END, StateGraph
 from qdrant_client import QdrantClient
 
 from src.agent.guardrail import confidence_score, is_confident
+from src.agent.llm import get_llm
 from src.config import settings
 from src.retrieval.reranker import rerank
 from src.retrieval.retriever import RetrievedChunk, retrieve
@@ -31,10 +31,6 @@ class AgentState(TypedDict):
     confidence: float
     is_confident: bool
     answer: str
-
-
-def get_llm() -> ChatGroq:
-    return ChatGroq(model=settings.groq_model, api_key=settings.groq_api_key, temperature=0.0)
 
 
 def _build_context(chunks: list[RetrievedChunk]) -> str:

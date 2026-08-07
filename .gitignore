@@ -6,6 +6,8 @@ __pycache__/
 .pytest_cache/
 .terraform/1
 *.tfstate.backup
+logs/
+data/cache/
 
 # Instrucoes internas de desenvolvimento (Claude Code) - nao publicas
 CLAUDE.md
