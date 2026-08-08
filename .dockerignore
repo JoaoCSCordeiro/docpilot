@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.env
+logs/
+data/cache/
+data/evaluation/__pycache__/
+tests/
+docs/
+infra/
+CLAUDE.md
+APRENDIZAGEM.md
+README.md
