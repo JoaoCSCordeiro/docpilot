@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docpilot-api
+  labels:
+    app: docpilot-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docpilot-api
+  template:
+    metadata:
+      labels:
+        app: docpilot-api
+    spec:
+      containers:
+        - name: api
+          image: docpilot-api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          env:
+            - name: QDRANT_HOST
+              value: "host.minikube.internal"
+            - name: QDRANT_PORT
+              value: "6333"
+            - name: MONGO_URI
+              value: "mongodb://host.minikube.internal:27017"
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: docpilot-secrets
+                  key: groq-api-key
