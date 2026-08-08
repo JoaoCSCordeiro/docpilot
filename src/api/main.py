@@ -8,7 +8,9 @@ from src.api.schemas import QueryRequest, QueryResponse
 
 app = FastAPI(
     title="DocPilot",
-    description="Agente de perguntas-e-respostas sobre documentação técnica, com guardrail de confiança.",
+    description=(
+        "Agente de perguntas-e-respostas sobre documentação técnica, com guardrail de confiança."
+    ),
 )
 
 

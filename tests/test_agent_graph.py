@@ -27,12 +27,12 @@ def populated_client() -> QdrantClient:
         Chunk(
             source="fastapi.md",
             position=0,
-            text="FastAPI e uma framework web para construir APIs em Python, baseada em type hints.",
+            text=FAKE_ANSWER,
         ),
         Chunk(
             source="docker.md",
             position=0,
-            text="Docker Compose permite orquestrar multiplos containers a partir de um unico ficheiro.",
+            text="Docker Compose orquestra multiplos containers a partir de um unico ficheiro.",
         ),
     ]
     embeddings = embed_texts([chunk.text for chunk in chunks])

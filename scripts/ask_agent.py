@@ -14,7 +14,7 @@ from src.config import settings  # noqa: E402
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Uso: python scripts/ask_agent.py \"a tua pergunta aqui\"")
+        print('Uso: python scripts/ask_agent.py "a tua pergunta aqui"')
         sys.exit(1)
 
     if not settings.groq_api_key:

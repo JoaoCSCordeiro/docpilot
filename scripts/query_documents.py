@@ -18,7 +18,7 @@ def print_results(title: str, chunks) -> None:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Uso: python scripts/query_documents.py \"a tua pergunta aqui\"")
+        print('Uso: python scripts/query_documents.py "a tua pergunta aqui"')
         sys.exit(1)
 
     query = " ".join(sys.argv[1:])

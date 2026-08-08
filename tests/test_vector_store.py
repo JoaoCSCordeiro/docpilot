@@ -69,9 +69,7 @@ def test_index_chunks_search_returns_most_similar_chunk_first(client: QdrantClie
     ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
     index_chunks(client, COLLECTION_NAME, chunks, embeddings)
 
-    results = client.query_points(
-        COLLECTION_NAME, query=[0.9, 0.1, 0.0, 0.0], limit=1
-    ).points
+    results = client.query_points(COLLECTION_NAME, query=[0.9, 0.1, 0.0, 0.0], limit=1).points
 
     assert results[0].payload["text"] == "sobre gatos"
 

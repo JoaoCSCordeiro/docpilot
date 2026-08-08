@@ -44,16 +44,25 @@ def main() -> None:
                 "retrieved_sources": retrieved_sources,
                 "recall_at_k": recall_at_k(retrieved_sources, expected_sources),
                 "precision_at_k": precision_at_k(retrieved_sources, expected_sources),
-                "precision_at_1_before_rerank": precision_at_k(retrieved_sources[:1], expected_sources),
-                "precision_at_1_after_rerank": precision_at_k(reranked_sources[:1], expected_sources),
+                "precision_at_1_before_rerank": precision_at_k(
+                    retrieved_sources[:1], expected_sources
+                ),
+                "precision_at_1_after_rerank": precision_at_k(
+                    reranked_sources[:1], expected_sources
+                ),
             }
         )
 
+    mean_recall = mean([r["recall_at_k"] for r in results])
+    mean_precision = mean([r["precision_at_k"] for r in results])
+    mean_precision_before_rerank = mean([r["precision_at_1_before_rerank"] for r in results])
+    mean_precision_after_rerank = mean([r["precision_at_1_after_rerank"] for r in results])
+
     print(f"Dataset: {len(results)} perguntas, top_k={top_k}\n")
-    print(f"Recall@{top_k}:                       {mean([r['recall_at_k'] for r in results]):.4f}")
-    print(f"Precision@{top_k}:                     {mean([r['precision_at_k'] for r in results]):.4f}")
-    print(f"Precision@1 (antes do reranking):    {mean([r['precision_at_1_before_rerank'] for r in results]):.4f}")
-    print(f"Precision@1 (depois do reranking):   {mean([r['precision_at_1_after_rerank'] for r in results]):.4f}")
+    print(f"Recall@{top_k}:                       {mean_recall:.4f}")
+    print(f"Precision@{top_k}:                     {mean_precision:.4f}")
+    print(f"Precision@1 (antes do reranking):    {mean_precision_before_rerank:.4f}")
+    print(f"Precision@1 (depois do reranking):   {mean_precision_after_rerank:.4f}")
 
     failures = [r for r in results if r["recall_at_k"] < 1.0]
     print(f"\nFalhas de recall ({len(failures)}/{len(results)}):")

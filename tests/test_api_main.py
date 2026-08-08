@@ -15,9 +15,9 @@ class FakeGraph:
 
 @pytest.fixture
 def client() -> TestClient:
-    app.dependency_overrides[get_query_log_collection] = (
-        lambda: mongomock.MongoClient()["test_db"]["query_traces"]
-    )
+    app.dependency_overrides[get_query_log_collection] = lambda: mongomock.MongoClient()["test_db"][
+        "query_traces"
+    ]
     return TestClient(app)
 
 

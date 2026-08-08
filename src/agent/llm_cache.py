@@ -9,7 +9,8 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(db_path)
     connection.execute(
-        "CREATE TABLE IF NOT EXISTS responses (prompt_hash TEXT PRIMARY KEY, response TEXT NOT NULL)"
+        "CREATE TABLE IF NOT EXISTS responses ("
+        "prompt_hash TEXT PRIMARY KEY, response TEXT NOT NULL)"
     )
     return connection
 

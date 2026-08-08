@@ -37,7 +37,9 @@ def _build_context(chunks: list[RetrievedChunk]) -> str:
     return "\n\n".join(f"[{chunk.source}] {chunk.text}" for chunk in chunks)
 
 
-def build_graph(client: QdrantClient, llm, collection_name: str | None = None, top_k: int | None = None):
+def build_graph(
+    client: QdrantClient, llm, collection_name: str | None = None, top_k: int | None = None
+):
     effective_collection_name = collection_name or settings.qdrant_collection_name
     effective_top_k = top_k or settings.retrieval_top_k
 

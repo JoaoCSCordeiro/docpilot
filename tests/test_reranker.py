@@ -34,7 +34,9 @@ def test_rerank_returns_empty_list_for_no_chunks() -> None:
 
 def test_rerank_preserves_chunk_metadata() -> None:
     chunks = [
-        RetrievedChunk(source="doc.md", position=0, text="Paris is the capital of France.", score=0.5)
+        RetrievedChunk(
+            source="doc.md", position=0, text="Paris is the capital of France.", score=0.5
+        )
     ]
 
     reranked = rerank("What is the capital of France?", chunks)
