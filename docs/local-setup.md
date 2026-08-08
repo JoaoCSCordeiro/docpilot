@@ -49,7 +49,7 @@
    ```
 
    Cada resposta fica também gravada em MongoDB (coleção `query_traces`,
-   base de dados `docpilot` — ver `docs/mongodb-query-log.md`). Para
+   base de dados `docpilot`; ver `docs/mongodb-query-log.md`). Para
    inspecionar diretamente:
 
    ```
@@ -74,7 +74,7 @@ docker compose down -v
 
 - O serviço `api` liga-se ao Qdrant e ao MongoDB pelos nomes dos
   serviços na rede interna do Compose (`qdrant`, `mongo`), não por
-  `localhost` — só faz sentido usar `localhost` quando corres a API
+  `localhost`. Só faz sentido usar `localhost` quando corres a API
   fora do Docker, diretamente na máquina host (nesse caso, usa o
   `.env` sem alterações, como já acontecia antes deste bloco).
 - Sem `GROQ_API_KEY` definida, a indexação e o retrieval funcionam

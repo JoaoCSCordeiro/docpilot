@@ -2,7 +2,7 @@
 
 Estes manifests demonstram o mesmo container da API (Bloco 10) a correr
 orquestrado por Kubernetes, como alternativa ao ECS/Fargate do
-`infra/terraform`. Cobrem apenas a API — Qdrant e MongoDB continuam a
+`infra/terraform`. Cobrem apenas a API; Qdrant e MongoDB continuam a
 correr fora do cluster (no host, via `docker-compose.yml`), acessiveis a
 partir do minikube pelo hostname `host.minikube.internal`.
 
@@ -58,6 +58,6 @@ minikube stop
 
 Estes manifests foram validados por sintaxe (YAML valido, campos
 obrigatorios presentes) mas **nao foram aplicados contra um cluster real**
-durante o desenvolvimento deste bloco — este ambiente nao tinha minikube
+durante o desenvolvimento deste bloco: este ambiente nao tinha minikube
 nem um cluster Kubernetes acessivel via `kubectl`. A validacao completa
 (passos acima) fica pendente para quando houver acesso a um cluster local.

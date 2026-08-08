@@ -1,10 +1,10 @@
-# Infraestrutura AWS (Terraform) — DocPilot
+# Infraestrutura AWS (Terraform) - DocPilot
 
 ## Aviso de custos
 
 Este modulo cria recursos reais na AWS que **tem custo por hora enquanto
 estiverem a correr** (Fargate task, ECR, CloudWatch Logs). Nao faz parte do
-free tier da AWS. **Nao deixar isto aplicado sem necessidade** — aplicar
+free tier da AWS. **Nao deixar isto aplicado sem necessidade**: aplicar
 apenas para gravar uma demonstracao, confirmar visualmente que funciona, e
 destruir logo a seguir (ver secao "Destruir" abaixo). Os custos aproximados
 (regiao `eu-west-1`, valores por omissao deste modulo):
@@ -20,7 +20,7 @@ se ficar esquecido a correr durante dias/semanas**.
 ## O que este modulo cria
 
 - Uma VPC minima com duas subnets publicas, internet gateway e route table
-  (sem NAT Gateway — reduz custo fixo, as tasks recebem IP publico
+  (sem NAT Gateway; reduz custo fixo, as tasks recebem IP publico
   diretamente)
 - Um repositorio ECR (`docpilot-api`) para a imagem da API
 - Um cluster ECS (Fargate) com uma task definition e um servico a correr a
@@ -28,13 +28,13 @@ se ficar esquecido a correr durante dias/semanas**.
 
 ## O que este modulo **nao** cria (limitacoes conscientes)
 
-- Qdrant e MongoDB **nao** sao aprovisionados em AWS — este modulo cobre só
+- Qdrant e MongoDB **nao** sao aprovisionados em AWS: este modulo cobre só
   a camada de computo da API (VPC, ECR, ECS), consistente com o objetivo do
   Bloco 11 ("VPC minima, container registry, e servico de container").
   Para uma demo completa na cloud, a forma mais simples e continuar a usar
   Qdrant/MongoDB self-hosted (ex: no mesmo host, ou noutro container Fargate
   na mesma VPC) e apontar `qdrant_host`/`mongo_uri` para la.
-- Sem HTTPS/load balancer — a task recebe um IP publico efemero
+- Sem HTTPS/load balancer: a task recebe um IP publico efemero
   diretamente, adequado para uma demonstracao pontual, nao para producao.
 
 ## Pre-requisitos

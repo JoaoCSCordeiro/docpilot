@@ -10,7 +10,7 @@
 - Corpus indexado: 167 chunks, fixed-size (500/50), Qdrant real
   (`docker compose up -d qdrant` + `scripts/index_documents.py`).
 - Métrica de relevância: granularidade de **documento de origem**
-  (`source`), não de chunk exato — ver "Limitações da metodologia" abaixo
+  (`source`), não de chunk exato. Ver "Limitações da metodologia" abaixo
   para o porquê.
 
 ## Resultados agregados
@@ -37,10 +37,10 @@ Separando o dataset por idioma do documento-fonte esperado:
 | Documentos em português (ASL Translator, TrendPulse AI) | 11 | **1.0000** |
 | Documentos em inglês (Financial Crew, FastAPI, Requests) | 14 | **0.2143** |
 
-Isto não é coincidência nem falta de chunks — confirmado que os 5
+Isto não é coincidência nem falta de chunks: confirmado que os 5
 documentos têm contagens de chunk substanciais e proporcionais ao seu
 tamanho (`asl`: 15, `FastAPI`: 51, `requests`: 7, `financial-crew`: 44,
-`trendpulse`: 50 — total 167), por isso não é um problema de indexação.
+`trendpulse`: 50; total 167), por isso não é um problema de indexação.
 
 **Causa provável**: `all-MiniLM-L6-v2` (o modelo de embeddings escolhido
 no Bloco 4) é um modelo predominantemente treinado em inglês, não a
@@ -57,12 +57,12 @@ literal no texto; a pergunta 23 ("Python 3.10+") contém a versão exata
 citada no README. Nos três casos, um termo técnico ou literal
 partilhado entre os dois idiomas (nomes próprios, comandos, números de
 versão) parece ter sido suficiente para aproximar os embeddings, mesmo
-sem tradução — o que reforça a hipótese de que o problema é mesmo
+sem tradução, o que reforça a hipótese de que o problema é mesmo
 cross-lingual, e não uma falha genérica do modelo.
 
 ## O que o reranking melhora (e o que não melhora)
 
-Precision@1 subiu de 0.4400 para 0.5200 depois do reranking — uma
+Precision@1 subiu de 0.4400 para 0.5200 depois do reranking: uma
 melhoria real, mas modesta, consistente com o que já tinha sido
 observado no Bloco 6 (`docs/reranking-notes.md`): o cross-encoder separa
 melhor os candidatos genuinamente relevantes dos restantes **dentro do
@@ -72,7 +72,7 @@ O que o reranking **não** muda, por construção: `recall@k` é idêntico
 antes e depois do reranking, porque reordenar os mesmos `k` candidatos
 não adiciona nem remove nenhum. As 11 falhas de recall cross-lingual
 listadas acima continuam a falhar depois do reranking, pela mesma razão
-já documentada no Bloco 6 — reranking não resolve um problema de
+já documentada no Bloco 6: reranking não resolve um problema de
 recall do estágio anterior (bi-encoder), só reordena o que já lá está.
 
 ## Casos de falha (exemplos)
@@ -89,8 +89,8 @@ recall do estágio anterior (bi-encoder), só reordena o que já lá está.
 ```
 
 Nota-se também que `trendpulse-ai-readme.md` (documento em português,
-com muito vocabulário técnico genérico — API, Docker, testes, backend)
-aparece como "vencedor por omissão" em quase todas as falhas, mesmo
+com muito vocabulário técnico genérico, por exemplo API, Docker, testes,
+backend) aparece como "vencedor por omissão" em quase todas as falhas, mesmo
 quando semanticamente não tem nada a ver com a pergunta. É coerente com
 a hipótese cross-lingual: entre um chunk em inglês pouco alinhado com a
 query em português e um chunk em português tecnicamente genérico mas no
@@ -102,7 +102,7 @@ conteúdo.
 - **Granularidade de documento, não de chunk**: `recall_at_k`/
   `precision_at_k` (`src/evaluation/metrics.py`) tratam qualquer chunk do
   documento esperado como "relevante", não apenas o chunk exato que
-  contém a resposta. Isto é uma simplificação deliberada — anotar
+  contém a resposta. Isto é uma simplificação deliberada: anotar
   manualmente o chunk exato para 25 perguntas seria frágil (muda sempre
   que a estratégia de chunking mudar) e não estava ao alcance deste
   bloco. O efeito prático é que a métrica é mais permissiva do que uma
@@ -113,7 +113,7 @@ conteúdo.
   de código vs. secções de arquitetura).
 - **Sem avaliação da resposta final do LLM**: esta avaliação mede só a
   qualidade do retrieval (que chunks chegam ao contexto), não se a
-  resposta gerada pelo agente (Bloco 7) está correta — são preocupações
+  resposta gerada pelo agente (Bloco 7) está correta; são preocupações
   relacionadas mas distintas.
 
 ## Implicações para trabalho futuro
