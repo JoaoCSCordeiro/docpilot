@@ -159,8 +159,11 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   real, billed resources; read the cost warning and the `apply`/`destroy`
   steps in `infra/terraform/README.md` before running `terraform apply`.
 - Kubernetes (`infra/k8s`): a Deployment and a Service for running the same
-  API image under minikube, as an alternative orchestration demo to ECS. See
-  `infra/k8s/README.md`.
+  API image, as an alternative orchestration demo to ECS. Validated for
+  syntax under minikube, and applied against a real k3s cluster running in
+  WSL2, confirmed operational via `kubectl` (pods running, service
+  reachable) at no cloud cost. See `infra/k8s/README.md`,
+  `docs/k3s-setup.md`, and `docs/k3s-deployment-evidence.md`.
 - CI (`.github/workflows/ci.yml`): GitHub Actions runs `ruff check`,
   `ruff format --check`, and the full `pytest` suite on every push and pull
   request to `main`. No external service is required, since the test suite
@@ -183,9 +186,11 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   production.
 - The Terraform module does not provision Qdrant or MongoDB in AWS, only the
   API compute layer; a full cloud deployment would need to extend it.
-- The Kubernetes manifests were validated for syntax only; they were not
-  applied against a running cluster during development, since none was
-  available in that environment.
+- The Kubernetes manifests were validated for syntax under minikube. They
+  have since been applied to a real k3s cluster (see `docs/k3s-setup.md`),
+  but Qdrant and MongoDB still run on the host via Docker Compose, not
+  inside the cluster; a fully self-contained cluster deployment would need
+  PersistentVolumeClaims and StatefulSets for both.
 - Generation depends on the Groq free tier, which has a rate limit; the
   agent enforces its own conservative client-side limit and caches
   responses locally to avoid hitting it during repeated testing.

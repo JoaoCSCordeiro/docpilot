@@ -22,11 +22,11 @@ spec:
             - containerPort: 8000
           env:
             - name: QDRANT_HOST
-              value: "host.minikube.internal"
+              value: "host.docker.internal"
             - name: QDRANT_PORT
               value: "6333"
             - name: MONGO_URI
-              value: "mongodb://host.minikube.internal:27017"
+              value: "mongodb://host.docker.internal:27017"
             - name: GROQ_API_KEY
               valueFrom:
                 secretKeyRef:
