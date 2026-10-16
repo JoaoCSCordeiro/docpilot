@@ -12,6 +12,7 @@ from src.agent.llm import get_llm  # noqa: E402
 from src.agent.query_log import get_query_traces_collection  # noqa: E402
 from src.config import settings  # noqa: E402
 from src.mcp_server.server import build_server  # noqa: E402
+from src.observability.tracing import get_langfuse  # noqa: E402
 from src.retrieval.vector_store import get_client  # noqa: E402
 
 # O timeout por omissao do pymongo (30 s) bloquearia cada ask_docpilot quando o Mongo
@@ -26,6 +27,10 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=settings.mcp_http_port)
     args = parser.parse_args()
 
+    # Inicializado antes do primeiro pedido: o middleware OpenTelemetry do SDK MCP abre o
+    # span de tools/call antes de a tool correr, e esse span so e exportado se o
+    # TracerProvider do Langfuse ja estiver registado.
+    get_langfuse()
     client = get_client()
 
     def graph_factory():

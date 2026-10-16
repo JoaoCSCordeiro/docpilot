@@ -1,0 +1,196 @@
+{
+  "trace_id": "225d2edbab26485d2a37d721fc320f76",
+  "observations": [
+    {
+      "name": "docpilot-query",
+      "type": "AGENT",
+      "id": "23baa0cc43884dbd",
+      "parent_observation_id": null,
+      "start_time": "2026-10-16T01:45:29.068000+00:00",
+      "latency_s": 0.73,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": {
+        "question": "Which server does FastAPI use to run the application?"
+      },
+      "output": {
+        "answer": "FastAPI runs the application with the **Uvicorn** server.",
+        "decision": "answered",
+        "confidence": 0.9798530430292555
+      }
+    },
+    {
+      "name": "retrieve",
+      "type": "RETRIEVER",
+      "id": "9d8e124cbcf79e71",
+      "parent_observation_id": "23baa0cc43884dbd",
+      "start_time": "2026-10-16T01:45:29.070000+00:00",
+      "latency_s": 0.1,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+        "collection": "docpilot"
+      },
+      "input": {
+        "query": "Which server does FastAPI use to run the application?",
+        "top_k": 5
+      },
+      "output": [
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 48,
+          "score": 0.67340046
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 23,
+          "score": 0.6378716
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 44,
+          "score": 0.6367778
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 25,
+          "score": 0.6184717
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 2,
+          "score": 0.6113105
+        }
+      ]
+    },
+    {
+      "name": "rerank",
+      "type": "SPAN",
+      "id": "f2631b40c0a932e5",
+      "parent_observation_id": "23baa0cc43884dbd",
+      "start_time": "2026-10-16T01:45:29.170000+00:00",
+      "latency_s": 0.142,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2"
+      },
+      "input": [
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 48,
+          "score": 0.67340046
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 23,
+          "score": 0.6378716
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 44,
+          "score": 0.6367778
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 25,
+          "score": 0.6184717
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 2,
+          "score": 0.6113105
+        }
+      ],
+      "output": [
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 25,
+          "score": 3.8843493461608887
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 23,
+          "score": 3.7750566005706787
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 48,
+          "score": 1.470210313796997
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 44,
+          "score": 0.9534574747085571
+        },
+        {
+          "source": "external/FastAPI-readme.md",
+          "position": 2,
+          "score": -0.7264428734779358
+        }
+      ]
+    },
+    {
+      "name": "assess_confidence",
+      "type": "GUARDRAIL",
+      "id": "871b8bb0536fd179",
+      "parent_observation_id": "23baa0cc43884dbd",
+      "start_time": "2026-10-16T01:45:29.313000+00:00",
+      "latency_s": 0.0,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": {
+        "confidence": 0.9798530430292555,
+        "is_confident": true,
+        "threshold": 0.5
+      }
+    },
+    {
+      "name": "generate_answer",
+      "type": "CHAIN",
+      "id": "04f199e4134404b2",
+      "parent_observation_id": "23baa0cc43884dbd",
+      "start_time": "2026-10-16T01:45:29.314000+00:00",
+      "latency_s": 0.483,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": "FastAPI runs the application with the **Uvicorn** server."
+    },
+    {
+      "name": "llm",
+      "type": "GENERATION",
+      "id": "d4dc5204bc704906",
+      "parent_observation_id": "04f199e4134404b2",
+      "start_time": "2026-10-16T01:45:29.315000+00:00",
+      "latency_s": 0.478,
+      "model": "openai/gpt-oss-120b",
+      "usage_details": {
+        "input": 761,
+        "output": 113,
+        "total": 874
+      },
+      "cost_details": {
+        "input": 0.00011415,
+        "output": 6.78e-05,
+        "total": 0.00018195
+      },
+      "metadata": {
+        "rate_limit_wait_seconds": 0,
+        "cache_hit": false
+      },
+      "input": "Responde à pergunta usando apenas a informação no contexto abaixo. Não inventes informação que não esteja no contexto.\n\nContexto:\n[external/FastAPI-readme.md] )\nINFO:     Started reloader process [2248755] using WatchFiles\nINFO:     Started server process [2248757]\nINFO:     Waiting for application startup.\nINFO:     Application startup complete.\n```\n\n</div>\n\n<details markdown=\"1\">\n<summary>About the command <code>fastapi dev</code>...</summary>\n\nThe command `fastapi dev` reads your `main.py` file automatically, detects the **FastAPI** app in it, and starts a server using [Uvicorn](https://uvicorn.dev).\n\nBy default, `fastapi dev` will start with auto-\n\n[external/FastAPI-readme.md] in-a-hurry [... truncated, 2848 chars]",
+      "output": "FastAPI runs the application with the **Uvicorn** server."
+    }
+  ]
+}

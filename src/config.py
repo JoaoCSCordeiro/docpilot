@@ -27,6 +27,15 @@ class Settings:
     groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     groq_max_calls_per_minute: int = int(os.getenv("GROQ_MAX_CALLS_PER_MINUTE", "20"))
     groq_max_tokens: int = int(os.getenv("GROQ_MAX_TOKENS", "1024"))
+    # Preco publico por milhao de tokens de openai/gpt-oss-120b, em USD
+    # (console.groq.com/docs/model/openai/gpt-oss-120b, consultado a 2026-10-16).
+    # Usado so para estimar custo no tracing: no free tier o custo real e zero.
+    groq_price_input_per_million: float = float(os.getenv("GROQ_PRICE_INPUT_PER_MILLION", "0.15"))
+    groq_price_output_per_million: float = float(os.getenv("GROQ_PRICE_OUTPUT_PER_MILLION", "0.60"))
+
+    langfuse_public_key: str = os.getenv("LANGFUSE_PUBLIC_KEY", "")
+    langfuse_secret_key: str = os.getenv("LANGFUSE_SECRET_KEY", "")
+    langfuse_base_url: str = os.getenv("LANGFUSE_BASE_URL", "http://localhost:3000")
 
     api_host: str = os.getenv("API_HOST", "0.0.0.0")
     api_port: int = int(os.getenv("API_PORT", "8000"))

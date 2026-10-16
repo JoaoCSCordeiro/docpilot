@@ -1,0 +1,171 @@
+{
+  "trace_id": "4e51a4776ce27b9dbb5a6c59e2ce059e",
+  "observations": [
+    {
+      "name": "docpilot-query",
+      "type": "AGENT",
+      "id": "a3d0b174111cb9f0",
+      "parent_observation_id": null,
+      "start_time": "2026-10-16T01:45:30.693000+00:00",
+      "latency_s": 0.181,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": {
+        "question": "Em que duas bibliotecas o FastAPI se baseia, segundo a secção de Requirements?"
+      },
+      "output": {
+        "answer": "Não tenho informação suficiente na documentação disponível para responder com confiança a essa pergunta.",
+        "decision": "refused",
+        "confidence": 0.4616124125565666
+      }
+    },
+    {
+      "name": "retrieve",
+      "type": "RETRIEVER",
+      "id": "998661723a4c6db4",
+      "parent_observation_id": "a3d0b174111cb9f0",
+      "start_time": "2026-10-16T01:45:30.695000+00:00",
+      "latency_s": 0.046,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+        "collection": "docpilot"
+      },
+      "input": {
+        "query": "Em que duas bibliotecas o FastAPI se baseia, segundo a secção de Requirements?",
+        "top_k": 5
+      },
+      "output": [
+        {
+          "source": "asl-translator-readme.md",
+          "position": 3,
+          "score": 0.42036694
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 36,
+          "score": 0.4178865
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 29,
+          "score": 0.4152207
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 1,
+          "score": 0.41019708
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 16,
+          "score": 0.40988028
+        }
+      ]
+    },
+    {
+      "name": "rerank",
+      "type": "SPAN",
+      "id": "aa552b3c9628aa14",
+      "parent_observation_id": "a3d0b174111cb9f0",
+      "start_time": "2026-10-16T01:45:30.742000+00:00",
+      "latency_s": 0.13,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2"
+      },
+      "input": [
+        {
+          "source": "asl-translator-readme.md",
+          "position": 3,
+          "score": 0.42036694
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 36,
+          "score": 0.4178865
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 29,
+          "score": 0.4152207
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 1,
+          "score": 0.41019708
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 16,
+          "score": 0.40988028
+        }
+      ],
+      "output": [
+        {
+          "source": "asl-translator-readme.md",
+          "position": 3,
+          "score": -0.15385311841964722
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 36,
+          "score": -1.2823102474212646
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 29,
+          "score": -6.448750019073486
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 16,
+          "score": -7.115756988525391
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 1,
+          "score": -8.257373809814453
+        }
+      ]
+    },
+    {
+      "name": "assess_confidence",
+      "type": "GUARDRAIL",
+      "id": "6dedc7a0b9973695",
+      "parent_observation_id": "a3d0b174111cb9f0",
+      "start_time": "2026-10-16T01:45:30.873000+00:00",
+      "latency_s": 0.0,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": {
+        "confidence": 0.4616124125565666,
+        "is_confident": false,
+        "threshold": 0.5
+      }
+    },
+    {
+      "name": "refuse",
+      "type": "SPAN",
+      "id": "25019ba9cfa2ca07",
+      "parent_observation_id": "a3d0b174111cb9f0",
+      "start_time": "2026-10-16T01:45:30.874000+00:00",
+      "latency_s": 0.0,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": "Não tenho informação suficiente na documentação disponível para responder com confiança a essa pergunta."
+    }
+  ]
+}

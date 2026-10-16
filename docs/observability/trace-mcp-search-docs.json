@@ -1,0 +1,93 @@
+{
+  "trace_id": "942e6cd5b3bfe1dc69460642159217e4",
+  "observations": [
+    {
+      "name": "search_docs",
+      "type": "TOOL",
+      "id": "90e3ec3a5f0be2c3",
+      "parent_observation_id": null,
+      "start_time": "2026-10-16T01:47:49.495000+00:00",
+      "latency_s": 5.594,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "attributes.langfuse.trace.name": "docpilot-search",
+        "attributes.langfuse.trace.tags": [
+          "mcp"
+        ],
+        "attributes.langfuse.internal.is_app_root": true,
+        "attributes.gen_ai.tool.name": "search_docs",
+        "attributes.gen_ai.operation.name": "execute_tool",
+        "attributes.jsonrpc.request.id": 4,
+        "attributes.mcp.protocol.version": "2026-07-28",
+        "attributes.mcp.method.name": "tools/call"
+      },
+      "input": null,
+      "output": null
+    },
+    {
+      "name": "retrieve",
+      "type": "RETRIEVER",
+      "id": "87a96e4e95ca63f3",
+      "parent_observation_id": "4b8ca54870120c00",
+      "start_time": "2026-10-16T01:47:49.496000+00:00",
+      "latency_s": 2.23,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": {
+        "query": "Financial Crew retries with exponential backoff"
+      },
+      "output": null
+    },
+    {
+      "name": "docpilot-search",
+      "type": "AGENT",
+      "id": "4b8ca54870120c00",
+      "parent_observation_id": "90e3ec3a5f0be2c3",
+      "start_time": "2026-10-16T01:47:49.496000+00:00",
+      "latency_s": 3.473,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": {
+        "query": "Financial Crew retries with exponential backoff",
+        "top_k": 3
+      },
+      "output": [
+        {
+          "source": "financial-crew-readme.md",
+          "position": 25,
+          "score": 4.1286234855651855
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 15,
+          "score": 2.712097644805908
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 14,
+          "score": -1.1259098052978516
+        }
+      ]
+    },
+    {
+      "name": "rerank",
+      "type": "SPAN",
+      "id": "8103bda51ffad41a",
+      "parent_observation_id": "4b8ca54870120c00",
+      "start_time": "2026-10-16T01:47:51.726000+00:00",
+      "latency_s": 1.243,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": null
+    }
+  ]
+}

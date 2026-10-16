@@ -13,9 +13,11 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ApiException as QdrantApiException
 from qdrant_client.http.exceptions import UnexpectedResponse
 
+from src.agent.graph import run_agent
 from src.agent.guardrail import confidence_score
 from src.agent.query_log import save_query_trace
 from src.config import settings
+from src.observability.tracing import flush, observation, request_trace
 from src.retrieval.reranker import rerank
 from src.retrieval.retriever import RetrievedChunk, retrieve
 from src.retrieval.vector_store import count_chunks_by_source
@@ -139,10 +141,20 @@ def build_server(
         language, so phrase the query in the language of the documentation you expect to hit.
         """
         try:
-            retrieved = retrieve(client, effective_collection_name, query, top_k)
+            with request_trace(
+                "docpilot-search", "mcp", input={"query": query, "top_k": top_k}
+            ) as trace:
+                with observation("retrieve", as_type="retriever", input={"query": query}):
+                    retrieved = retrieve(client, effective_collection_name, query, top_k)
+                with observation("rerank"):
+                    reranked = rerank(query, retrieved)
+                trace.update(output=[chunk.summary() for chunk in reranked])
         except QdrantApiException as exc:
             raise _qdrant_tool_error(exc, effective_collection_name) from exc
-        reranked = rerank(query, retrieved)
+        finally:
+            # O cliente MCP pode terminar o processo a qualquer momento (em Windows sem
+            # sinal), por isso nao se espera pelo export em background.
+            flush()
         return SearchResult(
             query=query,
             confidence=confidence_score(reranked),
@@ -167,11 +179,13 @@ def build_server(
         insufficient, decision is "refused" and no LLM call is made.
         """
         try:
-            state = get_graph().invoke({"query": question})
+            state = run_agent(get_graph(), question, entrypoint="mcp")
         except QdrantApiException as exc:
             raise _qdrant_tool_error(exc, effective_collection_name) from exc
         except GroqAPIError as exc:
             raise ToolError(f"The LLM provider request failed ({type(exc).__name__}).") from exc
+        finally:
+            flush()
 
         if query_log is not None:
             try:

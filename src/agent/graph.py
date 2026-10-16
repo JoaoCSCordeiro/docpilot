@@ -6,6 +6,7 @@ from qdrant_client import QdrantClient
 from src.agent.guardrail import confidence_score, is_confident
 from src.agent.llm import get_llm
 from src.config import settings
+from src.observability.tracing import observation, request_trace
 from src.retrieval.reranker import rerank
 from src.retrieval.retriever import RetrievedChunk, retrieve
 from src.retrieval.vector_store import get_client
@@ -44,19 +45,38 @@ def build_graph(
     effective_top_k = top_k or settings.retrieval_top_k
 
     def retrieve_node(state: AgentState) -> dict:
-        chunks = retrieve(client, effective_collection_name, state["query"], effective_top_k)
+        with observation(
+            "retrieve",
+            as_type="retriever",
+            input={"query": state["query"], "top_k": effective_top_k},
+            metadata={
+                "collection": effective_collection_name,
+                "embedding_model": settings.embedding_model_name,
+            },
+        ) as span:
+            chunks = retrieve(client, effective_collection_name, state["query"], effective_top_k)
+            span.update(output=[chunk.summary() for chunk in chunks])
         return {"retrieved_chunks": chunks}
 
     def rerank_node(state: AgentState) -> dict:
-        reranked = rerank(state["query"], state["retrieved_chunks"])
+        with observation(
+            "rerank",
+            input=[chunk.summary() for chunk in state["retrieved_chunks"]],
+            metadata={"reranker_model": settings.reranker_model_name},
+        ) as span:
+            reranked = rerank(state["query"], state["retrieved_chunks"])
+            span.update(output=[chunk.summary() for chunk in reranked])
         return {"reranked_chunks": reranked}
 
     def assess_confidence_node(state: AgentState) -> dict:
         chunks = state["reranked_chunks"]
-        return {
-            "confidence": confidence_score(chunks),
-            "is_confident": is_confident(chunks),
-        }
+        with observation("assess_confidence", as_type="guardrail") as span:
+            result = {
+                "confidence": confidence_score(chunks),
+                "is_confident": is_confident(chunks),
+            }
+            span.update(output={**result, "threshold": settings.confidence_threshold})
+        return result
 
     def route_by_confidence(state: AgentState) -> str:
         return "generate_answer" if state["is_confident"] else "refuse"
@@ -65,11 +85,14 @@ def build_graph(
         prompt = _PROMPT_TEMPLATE.format(
             context=_build_context(state["reranked_chunks"]), query=state["query"]
         )
-        response = llm.invoke(prompt)
+        with observation("generate_answer", as_type="chain") as span:
+            response = llm.invoke(prompt)
+            span.update(output=response.content)
         return {"answer": response.content}
 
     def refuse_node(state: AgentState) -> dict:
-        return {"answer": REFUSAL_MESSAGE}
+        with observation("refuse", output=REFUSAL_MESSAGE):
+            return {"answer": REFUSAL_MESSAGE}
 
     graph = StateGraph(AgentState)
     graph.add_node("retrieve", retrieve_node)
@@ -94,3 +117,16 @@ def build_graph(
 
 def build_default_graph():
     return build_graph(get_client(), get_llm())
+
+
+def run_agent(graph, question: str, entrypoint: str) -> AgentState:
+    with request_trace("docpilot-query", entrypoint, input={"question": question}) as trace:
+        state = graph.invoke({"query": question})
+        trace.update(
+            output={
+                "answer": state["answer"],
+                "decision": "answered" if state["is_confident"] else "refused",
+                "confidence": state["confidence"],
+            }
+        )
+    return state

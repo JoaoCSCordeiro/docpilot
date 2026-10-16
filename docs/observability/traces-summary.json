@@ -1,0 +1,246 @@
+[
+  {
+    "trace_id": "45388f332ebdb6fddb4e5ff59fbc73bc",
+    "start": "2026-10-16T01:45:23+00:00",
+    "root": "docpilot-query",
+    "question": "Que biblioteca é usada para detetar a mão e extrair os pontos-chave (landmarks) no tradutor de língua gestual?",
+    "decision": "answered",
+    "observations": 6,
+    "llm_cache_hit": true,
+    "usage": {
+      "input": 0,
+      "output": 0,
+      "total": 0
+    },
+    "cost_details": {
+      "total": 0.0
+    },
+    "trace_latency_s": 4.031
+  },
+  {
+    "trace_id": "eb8074060ef84f2c44da01f2dbc186f0",
+    "start": "2026-10-16T01:45:27+00:00",
+    "root": "docpilot-query",
+    "question": "Que classificador de Machine Learning tradicional é usado para reconhecer as letras gestuais?",
+    "decision": "answered",
+    "observations": 6,
+    "llm_cache_hit": false,
+    "usage": {
+      "input": 752,
+      "output": 66,
+      "total": 818
+    },
+    "cost_details": {
+      "input": 0.000112799999,
+      "output": 3.96e-05,
+      "total": 0.0001524
+    },
+    "trace_latency_s": 0.865
+  },
+  {
+    "trace_id": "7cbda7b494e986975fa5b124fc888318",
+    "start": "2026-10-16T01:45:27+00:00",
+    "root": "docpilot-query",
+    "question": "Que tecnologia de mensageria assíncrona o TrendPulse AI usa entre o ML Engine e o Core Backend?",
+    "decision": "answered",
+    "observations": 6,
+    "llm_cache_hit": true,
+    "usage": {
+      "input": 0,
+      "output": 0,
+      "total": 0
+    },
+    "cost_details": {
+      "total": 0.0
+    },
+    "trace_latency_s": 0.229
+  },
+  {
+    "trace_id": "b8a419335f07463ff754fa4f5f53ee6c",
+    "start": "2026-10-16T01:45:28+00:00",
+    "root": "docpilot-query",
+    "question": "Que modelo scikit-learn o TrendPulse AI usa para prever o retorno do dia seguinte?",
+    "decision": "answered",
+    "observations": 6,
+    "llm_cache_hit": false,
+    "usage": {
+      "input": 761,
+      "output": 200,
+      "total": 961
+    },
+    "cost_details": {
+      "input": 0.00011415,
+      "output": 0.00012,
+      "total": 0.00023415
+    },
+    "trace_latency_s": 0.786
+  },
+  {
+    "trace_id": "94a6661ae05c2d8af4c687cba826f54c",
+    "start": "2026-10-16T01:45:29+00:00",
+    "root": "docpilot-query",
+    "question": "What types of HTTP authentication does Requests support?",
+    "decision": "answered",
+    "observations": 6,
+    "llm_cache_hit": false,
+    "usage": {
+      "input": 809,
+      "output": 232,
+      "total": 1041
+    },
+    "cost_details": {
+      "input": 0.00012135,
+      "output": 0.0001392,
+      "total": 0.00026055
+    },
+    "trace_latency_s": 0.884
+  },
+  {
+    "trace_id": "225d2edbab26485d2a37d721fc320f76",
+    "start": "2026-10-16T01:45:29+00:00",
+    "root": "docpilot-query",
+    "question": "Which server does FastAPI use to run the application?",
+    "decision": "answered",
+    "observations": 6,
+    "llm_cache_hit": false,
+    "usage": {
+      "input": 761,
+      "output": 113,
+      "total": 874
+    },
+    "cost_details": {
+      "input": 0.00011415,
+      "output": 6.78e-05,
+      "total": 0.00018195
+    },
+    "trace_latency_s": 0.73
+  },
+  {
+    "trace_id": "484e2dd4ae252f5c2f7a45d2c07b6d65",
+    "start": "2026-10-16T01:45:30+00:00",
+    "root": "docpilot-query",
+    "question": "Qual é a receita tradicional de bacalhau à brás?",
+    "decision": "refused",
+    "observations": 5,
+    "llm_cache_hit": null,
+    "usage": null,
+    "cost_details": null,
+    "trace_latency_s": 0.182
+  },
+  {
+    "trace_id": "4e51a4776ce27b9dbb5a6c59e2ce059e",
+    "start": "2026-10-16T01:45:30+00:00",
+    "root": "docpilot-query",
+    "question": "Em que duas bibliotecas o FastAPI se baseia, segundo a secção de Requirements?",
+    "decision": "refused",
+    "observations": 5,
+    "llm_cache_hit": null,
+    "usage": null,
+    "cost_details": null,
+    "trace_latency_s": 0.181
+  },
+  {
+    "trace_id": "91549dd2bf47bfe44c0cf46e80609c37",
+    "start": "2026-10-16T01:46:08+00:00",
+    "root": "docpilot-search",
+    "question": "Financial Crew retries with exponential backoff",
+    "decision": null,
+    "observations": 3,
+    "llm_cache_hit": null,
+    "usage": null,
+    "cost_details": null,
+    "trace_latency_s": 3.406
+  },
+  {
+    "trace_id": "15dbfd531a6c4b6d3605ff6a6d78dbda",
+    "start": "2026-10-16T01:46:14+00:00",
+    "root": "ask_docpilot",
+    "question": "Which library does Financial Crew use for automatic retries with exponential backoff?",
+    "decision": "answered",
+    "observations": 7,
+    "llm_cache_hit": false,
+    "usage": {
+      "input": 737,
+      "output": 70,
+      "total": 807
+    },
+    "cost_details": {
+      "input": 0.00011055,
+      "output": 4.2e-05,
+      "total": 0.00015255
+    },
+    "trace_latency_s": 1.233
+  },
+  {
+    "trace_id": "acd0cd27d80aa63c10f3051e2ea3b73b",
+    "start": "2026-10-16T01:46:15+00:00",
+    "root": "ask_docpilot",
+    "question": "Quem ganhou o campeonato do mundo de futebol de 2010?",
+    "decision": "refused",
+    "observations": 6,
+    "llm_cache_hit": null,
+    "usage": null,
+    "cost_details": null,
+    "trace_latency_s": 0.262
+  },
+  {
+    "trace_id": "942e6cd5b3bfe1dc69460642159217e4",
+    "start": "2026-10-16T01:47:49+00:00",
+    "root": "search_docs",
+    "question": "Financial Crew retries with exponential backoff",
+    "decision": null,
+    "observations": 4,
+    "llm_cache_hit": null,
+    "usage": null,
+    "cost_details": null,
+    "trace_latency_s": 5.594
+  },
+  {
+    "trace_id": "01af4899e5a8044f0dff78e4df47e551",
+    "start": "2026-10-16T01:47:55+00:00",
+    "root": "ask_docpilot",
+    "question": "Quem ganhou o campeonato do mundo de futebol de 2010?",
+    "decision": "refused",
+    "observations": 6,
+    "llm_cache_hit": null,
+    "usage": null,
+    "cost_details": null,
+    "trace_latency_s": 0.214
+  },
+  {
+    "trace_id": "334fb3b1a3ce9222bf6e11adcbf76698",
+    "start": "2026-10-16T01:47:55+00:00",
+    "root": "ask_docpilot",
+    "question": "Which library does Financial Crew use for automatic retries with exponential backoff?",
+    "decision": "answered",
+    "observations": 7,
+    "llm_cache_hit": true,
+    "usage": {
+      "input": 0,
+      "output": 0,
+      "total": 0
+    },
+    "cost_details": {
+      "total": 0.0
+    },
+    "trace_latency_s": 0.719
+  },
+  {
+    "trace_id": "f225919f6d469017a1c5c53bf165e30b",
+    "start": "2026-10-16T01:49:32+00:00",
+    "root": "docpilot-query",
+    "question": "Que classificador de Machine Learning tradicional é usado para reconhecer as letras gestuais?",
+    "decision": "answered",
+    "observations": 6,
+    "llm_cache_hit": true,
+    "usage": {
+      "input": 0,
+      "output": 0,
+      "total": 0
+    },
+    "cost_details": {
+      "total": 0.0
+    },
+    "trace_latency_s": 3.486
+  }
+]

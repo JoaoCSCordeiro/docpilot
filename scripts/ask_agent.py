@@ -3,13 +3,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.agent.graph import build_default_graph  # noqa: E402
+from src.agent.graph import build_default_graph, run_agent  # noqa: E402
 from src.agent.query_log import (  # noqa: E402
     get_mongo_client,
     get_query_traces_collection,
     save_query_trace,
 )
 from src.config import settings  # noqa: E402
+from src.observability.tracing import flush  # noqa: E402
 
 
 def main() -> None:
@@ -23,7 +24,8 @@ def main() -> None:
 
     query = " ".join(sys.argv[1:])
     graph = build_default_graph()
-    result = graph.invoke({"query": query})
+    result = run_agent(graph, query, entrypoint="cli")
+    flush()
 
     query_log = get_query_traces_collection(get_mongo_client())
     save_query_trace(query_log, result)

@@ -1,0 +1,196 @@
+{
+  "trace_id": "b8a419335f07463ff754fa4f5f53ee6c",
+  "observations": [
+    {
+      "name": "docpilot-query",
+      "type": "AGENT",
+      "id": "d76089d1732b05af",
+      "parent_observation_id": null,
+      "start_time": "2026-10-16T01:45:28.274000+00:00",
+      "latency_s": 0.786,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": {
+        "question": "Que modelo scikit-learn o TrendPulse AI usa para prever o retorno do dia seguinte?"
+      },
+      "output": {
+        "answer": "O TrendPulse AI utiliza um **RandomForestClassifier** (floresta aleatória) da biblioteca scikit‑learn para gerar a previsão do retorno do dia seguinte.",
+        "decision": "answered",
+        "confidence": 0.7726126853325241
+      }
+    },
+    {
+      "name": "retrieve",
+      "type": "RETRIEVER",
+      "id": "a497a456daa7e12d",
+      "parent_observation_id": "d76089d1732b05af",
+      "start_time": "2026-10-16T01:45:28.276000+00:00",
+      "latency_s": 0.063,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+        "collection": "docpilot"
+      },
+      "input": {
+        "query": "Que modelo scikit-learn o TrendPulse AI usa para prever o retorno do dia seguinte?",
+        "top_k": 5
+      },
+      "output": [
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 0,
+          "score": 0.6099126
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 1,
+          "score": 0.5901898
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 15,
+          "score": 0.5219814
+        },
+        {
+          "source": "asl-translator-readme.md",
+          "position": 2,
+          "score": 0.5002348
+        },
+        {
+          "source": "asl-translator-readme.md",
+          "position": 11,
+          "score": 0.4888156
+        }
+      ]
+    },
+    {
+      "name": "rerank",
+      "type": "SPAN",
+      "id": "dddaaa83a4f82a70",
+      "parent_observation_id": "d76089d1732b05af",
+      "start_time": "2026-10-16T01:45:28.340000+00:00",
+      "latency_s": 0.141,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2"
+      },
+      "input": [
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 0,
+          "score": 0.6099126
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 1,
+          "score": 0.5901898
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 15,
+          "score": 0.5219814
+        },
+        {
+          "source": "asl-translator-readme.md",
+          "position": 2,
+          "score": 0.5002348
+        },
+        {
+          "source": "asl-translator-readme.md",
+          "position": 11,
+          "score": 0.4888156
+        }
+      ],
+      "output": [
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 0,
+          "score": 1.2231230735778809
+        },
+        {
+          "source": "asl-translator-readme.md",
+          "position": 2,
+          "score": -0.8589244484901428
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 1,
+          "score": -1.4441547393798828
+        },
+        {
+          "source": "trendpulse-ai-readme.md",
+          "position": 15,
+          "score": -1.9608510732650757
+        },
+        {
+          "source": "asl-translator-readme.md",
+          "position": 11,
+          "score": -5.927742004394531
+        }
+      ]
+    },
+    {
+      "name": "assess_confidence",
+      "type": "GUARDRAIL",
+      "id": "3f9230e99efd89ba",
+      "parent_observation_id": "d76089d1732b05af",
+      "start_time": "2026-10-16T01:45:28.482000+00:00",
+      "latency_s": 0.0,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": {
+        "confidence": 0.7726126853325241,
+        "is_confident": true,
+        "threshold": 0.5
+      }
+    },
+    {
+      "name": "generate_answer",
+      "type": "CHAIN",
+      "id": "1611fd413a61cda9",
+      "parent_observation_id": "d76089d1732b05af",
+      "start_time": "2026-10-16T01:45:28.482000+00:00",
+      "latency_s": 0.577,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": "O TrendPulse AI utiliza um **RandomForestClassifier** (floresta aleatória) da biblioteca scikit‑learn para gerar a previsão do retorno do dia seguinte."
+    },
+    {
+      "name": "llm",
+      "type": "GENERATION",
+      "id": "b6111490c6b5f293",
+      "parent_observation_id": "1611fd413a61cda9",
+      "start_time": "2026-10-16T01:45:28.484000+00:00",
+      "latency_s": 0.569,
+      "model": "openai/gpt-oss-120b",
+      "usage_details": {
+        "input": 761,
+        "output": 200,
+        "total": 961
+      },
+      "cost_details": {
+        "input": 0.00011415,
+        "output": 0.00012,
+        "total": 0.00023415
+      },
+      "metadata": {
+        "rate_limit_wait_seconds": 0,
+        "cache_hit": false
+      },
+      "input": "Responde à pergunta usando apenas a informação no contexto abaixo. Não inventes informação que não esteja no contexto.\n\nContexto:\n[trendpulse-ai-readme.md] # 📈 TrendPulse AI\n\n### Plataforma reativa de análise preditiva de mercados financeiros, orientada a eventos e alimentada por Machine Learning\n\nTrendPulse AI combina um pipeline de Machine Learning em Python com um backend orientado a eventos em Java/Spring Boot para transformar dados de mercado em previsões acionáveis, entregues em tempo real através de WebSockets. O projeto foi desenhado como demonstração prática de arquitetura distribuída, mensageria assíncrona e orquestração de sistemas de IA\n\n[asl-translator-readme.md] es dos dedos e  [... truncated, 2864 chars]",
+      "output": "O TrendPulse AI utiliza um **RandomForestClassifier** (floresta aleatória) da biblioteca scikit‑learn para gerar a previsão do retorno do dia seguinte."
+    }
+  ]
+}

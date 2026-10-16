@@ -4,7 +4,6 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 from src.config import settings
-from src.retrieval.retriever import RetrievedChunk
 
 QUERY_TRACES_COLLECTION_NAME = "query_traces"
 
@@ -17,21 +16,13 @@ def get_query_traces_collection(client: MongoClient) -> Collection:
     return client[settings.mongo_db_name][QUERY_TRACES_COLLECTION_NAME]
 
 
-def _chunk_to_document(chunk: RetrievedChunk) -> dict:
-    return {"source": chunk.source, "position": chunk.position, "score": chunk.score}
-
-
 def save_query_trace(
     collection: Collection, agent_state: dict, created_at: dt.datetime | None = None
 ) -> None:
     document = {
         "question": agent_state["query"],
-        "retrieved_chunks": [
-            _chunk_to_document(chunk) for chunk in agent_state.get("retrieved_chunks", [])
-        ],
-        "reranked_chunks": [
-            _chunk_to_document(chunk) for chunk in agent_state.get("reranked_chunks", [])
-        ],
+        "retrieved_chunks": [chunk.summary() for chunk in agent_state.get("retrieved_chunks", [])],
+        "reranked_chunks": [chunk.summary() for chunk in agent_state.get("reranked_chunks", [])],
         "confidence": agent_state.get("confidence"),
         "is_confident": agent_state.get("is_confident"),
         "answer": agent_state.get("answer"),

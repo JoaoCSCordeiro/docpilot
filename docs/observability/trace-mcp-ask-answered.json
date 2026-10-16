@@ -1,0 +1,221 @@
+{
+  "trace_id": "15dbfd531a6c4b6d3605ff6a6d78dbda",
+  "observations": [
+    {
+      "name": "ask_docpilot",
+      "type": "TOOL",
+      "id": "2272de25670c15d6",
+      "parent_observation_id": null,
+      "start_time": "2026-10-16T01:46:14.551000+00:00",
+      "latency_s": 1.233,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "attributes.langfuse.trace.name": "docpilot-query",
+        "attributes.langfuse.trace.tags": [
+          "mcp"
+        ],
+        "attributes.langfuse.internal.is_app_root": true,
+        "attributes.gen_ai.tool.name": "ask_docpilot",
+        "attributes.gen_ai.operation.name": "execute_tool",
+        "attributes.jsonrpc.request.id": 6,
+        "attributes.mcp.protocol.version": "2026-07-28",
+        "attributes.mcp.method.name": "tools/call"
+      },
+      "input": null,
+      "output": null
+    },
+    {
+      "name": "docpilot-query",
+      "type": "AGENT",
+      "id": "8881785aea70fc76",
+      "parent_observation_id": "2272de25670c15d6",
+      "start_time": "2026-10-16T01:46:15.073000+00:00",
+      "latency_s": 0.677,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": {
+        "question": "Which library does Financial Crew use for automatic retries with exponential backoff?"
+      },
+      "output": {
+        "answer": "Financial Crew uses the **`tenacity`** library for automatic retries with exponential backoff.",
+        "decision": "answered",
+        "confidence": 0.9625037299334112
+      }
+    },
+    {
+      "name": "retrieve",
+      "type": "RETRIEVER",
+      "id": "689f692b4717850c",
+      "parent_observation_id": "8881785aea70fc76",
+      "start_time": "2026-10-16T01:46:15.075000+00:00",
+      "latency_s": 0.038,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+        "collection": "docpilot"
+      },
+      "input": {
+        "query": "Which library does Financial Crew use for automatic retries with exponential backoff?",
+        "top_k": 5
+      },
+      "output": [
+        {
+          "source": "financial-crew-readme.md",
+          "position": 14,
+          "score": 0.48668993
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 25,
+          "score": 0.46333995
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 0,
+          "score": 0.42974126
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 15,
+          "score": 0.41875643
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 21,
+          "score": 0.3409565
+        }
+      ]
+    },
+    {
+      "name": "rerank",
+      "type": "SPAN",
+      "id": "ed5d1da1c887c3a1",
+      "parent_observation_id": "8881785aea70fc76",
+      "start_time": "2026-10-16T01:46:15.114000+00:00",
+      "latency_s": 0.114,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {
+        "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2"
+      },
+      "input": [
+        {
+          "source": "financial-crew-readme.md",
+          "position": 14,
+          "score": 0.48668993
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 25,
+          "score": 0.46333995
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 0,
+          "score": 0.42974126
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 15,
+          "score": 0.41875643
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 21,
+          "score": 0.3409565
+        }
+      ],
+      "output": [
+        {
+          "source": "financial-crew-readme.md",
+          "position": 15,
+          "score": 3.2452964782714844
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 14,
+          "score": 0.6382685899734497
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 25,
+          "score": 0.3225281536579132
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 0,
+          "score": -6.599852561950684
+        },
+        {
+          "source": "financial-crew-readme.md",
+          "position": 21,
+          "score": -11.363880157470703
+        }
+      ]
+    },
+    {
+      "name": "assess_confidence",
+      "type": "GUARDRAIL",
+      "id": "8110829608a11f67",
+      "parent_observation_id": "8881785aea70fc76",
+      "start_time": "2026-10-16T01:46:15.228000+00:00",
+      "latency_s": 0.0,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": {
+        "confidence": 0.9625037299334112,
+        "is_confident": true,
+        "threshold": 0.5
+      }
+    },
+    {
+      "name": "generate_answer",
+      "type": "CHAIN",
+      "id": "8f456894e86383d7",
+      "parent_observation_id": "8881785aea70fc76",
+      "start_time": "2026-10-16T01:46:15.229000+00:00",
+      "latency_s": 0.52,
+      "model": "",
+      "usage_details": {},
+      "cost_details": {},
+      "metadata": {},
+      "input": null,
+      "output": "Financial Crew uses the **`tenacity`** library for automatic retries with exponential backoff."
+    },
+    {
+      "name": "llm",
+      "type": "GENERATION",
+      "id": "75ae73eda0f6fe45",
+      "parent_observation_id": "8f456894e86383d7",
+      "start_time": "2026-10-16T01:46:15.231000+00:00",
+      "latency_s": 0.514,
+      "model": "openai/gpt-oss-120b",
+      "usage_details": {
+        "input": 737,
+        "output": 70,
+        "total": 807
+      },
+      "cost_details": {
+        "input": 0.00011055,
+        "output": 4.2e-05,
+        "total": 0.00015255
+      },
+      "metadata": {
+        "rate_limit_wait_seconds": 0,
+        "cache_hit": false
+      },
+      "input": "Responde à pergunta usando apenas a informação no contexto abaixo. Não inventes informação que não esteja no contexto.\n\nContexto:\n[financial-crew-readme.md]  automatically\nwith exponential backoff (via `tenacity`); data errors (e.g. an invalid\nticker) are not retried, since retrying will not change the outcome.\n\n## Implementation Notes\n\n### crewAI + Groq: \"cache_breakpoint is unsupported\"\n\ncrewAI versions 1.14.4+ have an open bug ([crewAIInc/crewAI#5886](https://github.com/crewAIInc/crewAI/issues/5886)) where a `cache_breakpoint` field is injected into every message sent to the LLM, but only the Anthropic adapter knows how to strip it before the API\n\n[financial-crew-readme.md]  project: Appl [... truncated, 2870 chars]",
+      "output": "Financial Crew uses the **`tenacity`** library for automatic retries with exponential backoff."
+    }
+  ]
+}

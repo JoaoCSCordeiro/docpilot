@@ -14,6 +14,9 @@ class RetrievedChunk:
     text: str
     score: float
 
+    def summary(self) -> dict:
+        return {"source": self.source, "position": self.position, "score": self.score}
+
 
 def retrieve(
     client: QdrantClient, collection_name: str, query: str, top_k: int

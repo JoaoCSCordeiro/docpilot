@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 
 from langchain_groq import ChatGroq
@@ -6,11 +7,21 @@ from src.agent.llm_cache import get_cached_response, store_response
 from src.agent.rate_limiter import TokenBucket
 from src.agent.usage_logger import log_usage
 from src.config import settings
+from src.observability.tracing import observation
+
+_TOKENS_PER_PRICE_UNIT = 1_000_000
 
 
 @dataclass
 class LLMResponse:
     content: str
+    cache_hit: bool = False
+
+
+def estimate_groq_cost(input_tokens: int, output_tokens: int) -> dict[str, float]:
+    input_cost = input_tokens * settings.groq_price_input_per_million / _TOKENS_PER_PRICE_UNIT
+    output_cost = output_tokens * settings.groq_price_output_per_million / _TOKENS_PER_PRICE_UNIT
+    return {"input": input_cost, "output": output_cost, "total": input_cost + output_cost}
 
 
 class GuardedGroqLLM:
@@ -19,18 +30,55 @@ class GuardedGroqLLM:
         self._rate_limiter = rate_limiter
 
     def invoke(self, prompt: str) -> LLMResponse:
+        model = self._chat_groq.model_name
         cached_content = get_cached_response(prompt)
         if cached_content is not None:
-            return LLMResponse(content=cached_content)
+            with observation(
+                "llm",
+                as_type="generation",
+                model=model,
+                input=prompt,
+                output=cached_content,
+                metadata={"cache_hit": True},
+                usage_details={"input": 0, "output": 0},
+                cost_details={"total": 0.0},
+            ):
+                return LLMResponse(content=cached_content, cache_hit=True)
 
+        # A espera do rate limiter fica fora da generation para a latencia medida ser a
+        # da Groq; o tempo de espera vai em metadata.
+        wait_started = time.monotonic()
         self._rate_limiter.acquire()
-        response = self._chat_groq.invoke(prompt)
+        rate_limit_wait_seconds = time.monotonic() - wait_started
 
-        usage = getattr(response, "usage_metadata", None) or {}
+        with observation(
+            "llm",
+            as_type="generation",
+            model=model,
+            input=prompt,
+            model_parameters={
+                "temperature": self._chat_groq.temperature,
+                "max_tokens": self._chat_groq.max_tokens,
+            },
+            metadata={
+                "cache_hit": False,
+                "rate_limit_wait_seconds": round(rate_limit_wait_seconds, 3),
+            },
+        ) as generation:
+            response = self._chat_groq.invoke(prompt)
+            usage = getattr(response, "usage_metadata", None) or {}
+            input_tokens = usage.get("input_tokens", 0)
+            output_tokens = usage.get("output_tokens", 0)
+            generation.update(
+                output=response.content,
+                usage_details={"input": input_tokens, "output": output_tokens},
+                cost_details=estimate_groq_cost(input_tokens, output_tokens),
+            )
+
         log_usage(
             prompt_preview=prompt[:80],
-            input_tokens=usage.get("input_tokens", 0),
-            output_tokens=usage.get("output_tokens", 0),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
             total_tokens=usage.get("total_tokens", 0),
         )
 
