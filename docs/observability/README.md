@@ -94,6 +94,29 @@ metadados internos do SDK):
 - `trace-mcp-ask-answered.json`: pedido 10, `ask_docpilot` com chamada real
   à Groq (resposta correta: `tenacity`).
 
+## Screenshots da UI
+
+Tiradas da instância local a 2026-10-16, depois da execução acima. A
+coluna Metadata da lista foi escondida antes da captura, porque mostrava a
+chave pública do projeto.
+
+- `screenshots/01-trace-list.jpg`: lista dos 15 traces raiz (10 `AGENT`
+  do DocPilot, 5 `TOOL` do SDK MCP), com input, output e latência.
+- `screenshots/02-unfaithful-answer-tree.jpg`: trace do pedido 4, com a
+  árvore `docpilot-query` → `retrieve`, `rerank`, `generate_answer` → `llm`,
+  `assess_confidence`, a tag `api` e a resposta errada com confiança 0.7726.
+- `screenshots/03-unfaithful-answer-rerank-output.jpg`: output do `rerank`
+  do mesmo pedido, com `asl-translator-readme.md#2` em segundo lugar.
+- `screenshots/04-unfaithful-answer-llm-prompt.jpg`: a generation `llm`
+  (`openai/gpt-oss-120b`, 961 tokens, $0.000234) com o prompt real, onde se
+  vê o chunk do ASL com `RandomForestClassifier` dentro do contexto.
+- `screenshots/05-mcp-search-docs-tool-span.jpg`: pedido 12 pelo MCP, com
+  `search_docs` (span `TOOL` do SDK MCP) → `docpilot-search` → `retrieve`,
+  `rerank`, e a tag `mcp`.
+
+A UI arredonda o custo no cabeçalho do trace para `$0.00`; o valor exato
+aparece na generation (`$0.000234`).
+
 ## O que os traces mostraram
 
 **Uma resposta errada que passou o guardrail (pedido 4).** "Que modelo
@@ -167,5 +190,3 @@ não é, por isso o Mongo continua a ser a única fonte de histórico garantida.
 - Não foi usado o `CallbackHandler` de LangChain do Langfuse: na v5 ele
   exige `langchain-core>=1`, e o projeto usa `langchain-core` 0.3 (via
   `langgraph` 0.2). A instrumentação é manual.
-- Screenshots da UI não foram tiradas nesta sessão (a extensão de browser
-  não estava ligada); a evidência são os exports JSON da API do Langfuse.
