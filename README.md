@@ -54,6 +54,9 @@ Components:
   (`POST /query`), with request/response validation via Pydantic.
   Every query is persisted as a trace document in MongoDB (`src/agent/query_log.py`),
   recording the retrieved chunks, reranked chunks, confidence, and answer.
+- MCP server (`src/mcp_server`): exposes the same retrieval and agent
+  functions as Model Context Protocol tools, so MCP clients can use DocPilot
+  directly. Tested with Claude Code and with the SDK's own client.
 - Evaluation (`src/evaluation`): recall@k and precision@k against a manually
   annotated question/answer dataset, plus a chunking strategy comparison.
 
@@ -115,6 +118,55 @@ Every answer, confident or refused, is logged as a document in MongoDB
 (collection `query_traces`), inspectable with `mongosh` or Compass; see
 `docs/mongodb-query-log.md` for the schema and the reasoning behind using
 MongoDB for this specific case.
+
+### MCP Server
+
+`scripts/run_mcp_server.py` runs DocPilot as an MCP server (official
+Python SDK, `mcp` 2.x, `MCPServer`). Three tools are exposed:
+
+- `search_docs(query, top_k)`: vector search plus cross-encoder reranking,
+  returning `source`, `position`, score, and text for each chunk. It does
+  not call the LLM. `top_k` is limited to 1-20.
+- `ask_docpilot(question)`: runs the full agent and returns the answer,
+  the decision (`answered` or `refused`), the confidence, and the sources.
+- `list_sources()`: lists the indexed documents with their chunk counts.
+
+The default transport is stdio. Register it in Claude Code (local scope,
+stored in `~/.claude.json`, not in the repository):
+
+```
+claude mcp add docpilot --scope local -- "<repo>\.venv\Scripts\python.exe" "<repo>\scripts\run_mcp_server.py"
+claude mcp list
+```
+
+Equivalent entry for clients configured through JSON, such as Claude
+Desktop's `claude_desktop_config.json` (this format follows the MCP
+convention but was not tested with Claude Desktop):
+
+```
+{
+  "mcpServers": {
+    "docpilot": {
+      "command": "<repo>\\.venv\\Scripts\\python.exe",
+      "args": ["<repo>\\scripts\\run_mcp_server.py"]
+    }
+  }
+}
+```
+
+Streamable HTTP is available as a second transport, bound to
+`127.0.0.1:8001` by default (`MCP_HTTP_HOST`/`MCP_HTTP_PORT`), with no
+authentication:
+
+```
+python scripts/run_mcp_server.py --transport streamable-http
+```
+
+Qdrant must be running for every tool, and `GROQ_API_KEY` is needed only
+by `ask_docpilot`. Tool output is document text, so a document containing
+instructions can attempt prompt injection against the client agent; see
+`docs/mcp-evidence.md` for the real calls made from Claude Code and for
+the mitigations that exist and those that do not.
 
 ## Evaluation Results
 

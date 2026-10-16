@@ -31,5 +31,8 @@ class Settings:
     api_host: str = os.getenv("API_HOST", "0.0.0.0")
     api_port: int = int(os.getenv("API_PORT", "8000"))
 
+    mcp_http_host: str = os.getenv("MCP_HTTP_HOST", "127.0.0.1")
+    mcp_http_port: int = int(os.getenv("MCP_HTTP_PORT", "8001"))
+
 
 settings = Settings()

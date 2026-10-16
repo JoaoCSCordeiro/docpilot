@@ -47,3 +47,25 @@ def index_chunks(
         for chunk, embedding in zip(chunks, embeddings)
     ]
     client.upsert(collection_name=collection_name, points=points)
+
+
+def count_chunks_by_source(
+    client: QdrantClient, collection_name: str, page_size: int = 256
+) -> dict[str, int]:
+    # Scroll em vez da Facet API: a facet exige um payload index em `source`, que a
+    # coleccao nao tem; para algumas centenas de pontos o scroll e suficiente.
+    counts: dict[str, int] = {}
+    offset = None
+    while True:
+        points, offset = client.scroll(
+            collection_name,
+            limit=page_size,
+            offset=offset,
+            with_payload=["source"],
+            with_vectors=False,
+        )
+        for point in points:
+            source = point.payload["source"]
+            counts[source] = counts.get(source, 0) + 1
+        if offset is None:
+            return dict(sorted(counts.items()))

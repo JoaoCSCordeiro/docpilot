@@ -2,7 +2,9 @@ import hashlib
 import sqlite3
 from pathlib import Path
 
-_DEFAULT_DB_PATH = Path("data/cache/groq_responses.db")
+# Ancorado na raiz do repo, nao no cwd: clientes MCP lancam o servidor a partir de
+# um diretorio de trabalho arbitrario.
+_DEFAULT_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "cache" / "groq_responses.db"
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:

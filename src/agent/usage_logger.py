@@ -1,7 +1,7 @@
 import datetime as dt
 from pathlib import Path
 
-_DEFAULT_LOG_PATH = Path("logs/groq_usage.log")
+_DEFAULT_LOG_PATH = Path(__file__).resolve().parents[2] / "logs" / "groq_usage.log"
 
 
 def log_usage(

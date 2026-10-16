@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI
 
 from src.agent.graph import build_default_graph
 from src.agent.query_log import get_mongo_client, get_query_traces_collection, save_query_trace
-from src.api.schemas import QueryRequest, QueryResponse
+from src.api.schemas import QueryRequest, QueryResponse, SourceChunk
 
 app = FastAPI(
     title="DocPilot",
@@ -36,4 +36,8 @@ def query(
         answer=result["answer"],
         is_confident=result["is_confident"],
         confidence=result["confidence"],
+        sources=[
+            SourceChunk(source=chunk.source, position=chunk.position, score=chunk.score)
+            for chunk in result.get("reranked_chunks", [])
+        ],
     )

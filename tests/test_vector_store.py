@@ -2,7 +2,12 @@ import pytest
 from qdrant_client import QdrantClient
 
 from src.ingestion.chunking_fixed import Chunk
-from src.retrieval.vector_store import chunk_point_id, ensure_collection, index_chunks
+from src.retrieval.vector_store import (
+    chunk_point_id,
+    count_chunks_by_source,
+    ensure_collection,
+    index_chunks,
+)
 
 COLLECTION_NAME = "test_collection"
 VECTOR_SIZE = 4
@@ -82,3 +87,14 @@ def test_index_chunks_rejects_mismatched_lengths(client: QdrantClient) -> None:
 
     with pytest.raises(ValueError):
         index_chunks(client, COLLECTION_NAME, chunks, embeddings)
+
+
+def test_count_chunks_by_source_walks_every_scroll_page(client: QdrantClient) -> None:
+    chunks = [Chunk(source="b.md", position=i, text=f"b{i}") for i in range(3)]
+    chunks.append(Chunk(source="a.md", position=0, text="a0"))
+    ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
+    index_chunks(client, COLLECTION_NAME, chunks, [[1.0, 0.0, 0.0, 0.0]] * len(chunks))
+
+    counts = count_chunks_by_source(client, COLLECTION_NAME, page_size=2)
+
+    assert counts == {"a.md": 1, "b.md": 3}

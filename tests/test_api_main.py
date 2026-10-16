@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_graph, get_query_log_collection
+from src.retrieval.retriever import RetrievedChunk
 
 
 class FakeGraph:
@@ -65,6 +66,24 @@ def test_query_endpoint_returns_refusal(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["is_confident"] is False
+
+
+def test_query_endpoint_returns_sources_of_reranked_chunks(client: TestClient) -> None:
+    _override_graph(
+        {
+            "query": "O que e o FastAPI?",
+            "answer": "FastAPI e uma framework web para Python.",
+            "is_confident": True,
+            "confidence": 0.83,
+            "reranked_chunks": [
+                RetrievedChunk(source="fastapi.md", position=3, text="...", score=1.6)
+            ],
+        }
+    )
+
+    response = client.post("/query", json={"question": "O que e o FastAPI?"})
+
+    assert response.json()["sources"] == [{"source": "fastapi.md", "position": 3, "score": 1.6}]
 
 
 def test_query_endpoint_rejects_empty_question(client: TestClient) -> None:
