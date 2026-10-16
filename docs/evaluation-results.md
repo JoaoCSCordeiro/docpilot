@@ -22,6 +22,25 @@
 | Precision@1 (antes do reranking) | 0.4400 |
 | Precision@1 (depois do reranking) | 0.5200 |
 
+### Reprodução (2026-10-16)
+
+Antes de estender o projeto, o baseline foi reproduzido a partir de um
+Qdrant reiniciado e de uma reindexação completa, no commit `9d45970`:
+
+```
+docker compose up -d qdrant mongo
+python scripts/index_documents.py   # 5 documentos, 167 chunks, 167 pontos
+python scripts/run_evaluation.py    # 25 perguntas, top_k=5
+```
+
+Resultado idêntico ao da tabela acima nas quatro métricas (Recall@5
+0.5600, Precision@5 0.4240, Precision@1 0.4400 -> 0.5200), com as mesmas
+11 falhas de recall. A divisão por idioma do documento-fonte também se
+mantém: 11 perguntas sobre documentos em português com Recall@5 1.0000 e
+14 sobre documentos em inglês com 0.2143. A pipeline é determinística
+(embeddings e cross-encoder locais, sem LLM), por isso a reprodução exata
+é o resultado esperado.
+
 ## Achado principal: falha de retrieval cross-lingual
 
 Ao investigar as 11 falhas de recall (44% do dataset), surgiu um padrão
