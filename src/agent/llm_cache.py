@@ -17,27 +17,32 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     return connection
 
 
-def _hash_prompt(prompt: str) -> str:
-    return hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+def cache_key(model: str, prompt: str) -> str:
+    # O modelo entra na chave: o mesmo prompt enviado ao gerador e ao juiz (ou a outro
+    # provider) tem respostas diferentes. Entradas antigas, so com o hash do prompt,
+    # deixam de ser encontradas em vez de serem servidas ao modelo errado.
+    return hashlib.sha256(f"{model}\n{prompt}".encode("utf-8")).hexdigest()
 
 
-def get_cached_response(prompt: str, db_path: Path = _DEFAULT_DB_PATH) -> str | None:
+def get_cached_response(model: str, prompt: str, db_path: Path = _DEFAULT_DB_PATH) -> str | None:
     connection = _connect(db_path)
     try:
         row = connection.execute(
-            "SELECT response FROM responses WHERE prompt_hash = ?", (_hash_prompt(prompt),)
+            "SELECT response FROM responses WHERE prompt_hash = ?", (cache_key(model, prompt),)
         ).fetchone()
         return row[0] if row else None
     finally:
         connection.close()
 
 
-def store_response(prompt: str, response: str, db_path: Path = _DEFAULT_DB_PATH) -> None:
+def store_response(
+    model: str, prompt: str, response: str, db_path: Path = _DEFAULT_DB_PATH
+) -> None:
     connection = _connect(db_path)
     try:
         connection.execute(
             "INSERT OR REPLACE INTO responses (prompt_hash, response) VALUES (?, ?)",
-            (_hash_prompt(prompt), response),
+            (cache_key(model, prompt), response),
         )
         connection.commit()
     finally:

@@ -65,8 +65,11 @@ Components:
 - Observability (`src/observability`): optional Langfuse tracing, one trace
   per request with a span per graph node and the LLM call recorded as a
   generation. A no-op when Langfuse keys are not configured.
-- Evaluation (`src/evaluation`): recall@k and precision@k against a manually
-  annotated question/answer dataset, plus a chunking strategy comparison.
+- Evaluation (`src/evaluation`): retrieval metrics (recall@k, precision@k,
+  MRR, split by question and document language), deterministic answer checks
+  (refusal, source citations, prompt injection canary), and an
+  LLM-as-a-judge for faithfulness and answer relevance, over a 58-case
+  annotated dataset. A retrieval-only version runs as a gate in CI.
 
 ## Setup
 
@@ -119,8 +122,18 @@ Other scripts:
 
 - `scripts/index_documents.py`: runs the full ingestion pipeline (load, chunk,
   embed, index) against `data/raw`.
-- `scripts/run_evaluation.py`: runs the QA dataset (`data/evaluation/qa_dataset.json`)
-  against the retrieval pipeline and prints recall/precision metrics.
+- `scripts/run_evaluation.py`: runs the original 25-question dataset
+  (`data/evaluation/qa_dataset.json`) against the retrieval pipeline and
+  prints recall/precision metrics.
+- `scripts/run_llm_evaluation.py`: runs the 58-case dataset
+  (`data/evaluation/qa_dataset_v2.json`) through the full agent, applies the
+  deterministic checks and the LLM judge, and writes a report to
+  `docs/evaluation/`. `--dry-run` prints the number of Groq calls it would
+  make without calling the LLM.
+- `scripts/check_retrieval_gate.py`: retrieval-only evaluation compared with
+  `data/evaluation/baseline.json`; exits with code 1 on a regression.
+- `scripts/judge_calibration.py`: writes a blind labelling sheet for the
+  judge and reports agreement once the labels are filled in.
 
 Every answer, confident or refused, is logged as a document in MongoDB
 (collection `query_traces`), inspectable with `mongosh` or Compass; see
@@ -212,26 +225,54 @@ including an incorrect answer that passed the confidence guardrail.
 
 ## Evaluation Results
 
-Full results and methodology in `docs/evaluation-results.md`,
-`docs/chunking-comparison.md`, and `docs/reranking-notes.md`. Summary,
-measured against the real corpus and a 25-question dataset:
+Full methodology and per-case results in `docs/evaluation/README.md` (answer
+evaluation, Block 18) and `docs/evaluation-results.md` (original retrieval
+evaluation). Numbers below come from one run on 2026-10-16 with a 58-case
+dataset: 40 in-scope questions (25 Portuguese, 15 English), 8 out-of-scope
+questions, and 10 prompt injection cases.
+
+Retrieval, 40 in-scope questions, top 5:
 
 | Metric | Value |
 |---|---|
-| Recall@5 | 0.5600 |
-| Precision@5 | 0.4240 |
-| Precision@1 (before reranking) | 0.4400 |
-| Precision@1 (after reranking) | 0.5200 |
+| Recall@5 | 0.7250 |
+| Precision@5 | 0.6200 |
+| MRR | 0.6833 |
+| Precision@1 (before / after reranking) | 0.6500 / 0.7000 |
 
-The main finding is a cross-lingual retrieval failure: recall@5 is 1.0000 for
-questions about Portuguese-language documents (11 questions) but only 0.2143
-for questions about English-language documents (14 questions), all asked in
-Portuguese. The embedding model used (`all-MiniLM-L6-v2`) is predominantly
-trained on English and does not reliably place semantically equivalent
-Portuguese and English text close together in vector space. Reranking
-improves precision@1 within the already-retrieved candidates but cannot
-recover a document that never reached the top-k in the first place, since it
-only reorders what the retriever already returned.
+| Question -> document language | N | Recall@5 |
+|---|---|---|
+| English -> English | 9 | 1.0000 |
+| English -> Portuguese | 6 | 1.0000 |
+| Portuguese -> English | 14 | 0.2143 |
+| Portuguese -> Portuguese | 11 | 1.0000 |
+
+The retrieval failure is cross-lingual and one-directional: Portuguese
+questions about English documents reach 0.2143, while English questions
+retrieve Portuguese documents without loss. The embedding model
+(`all-MiniLM-L6-v2`) is predominantly trained on English. Reranking improves
+precision@1 within the retrieved candidates but cannot recover a document
+that never reached the top-k.
+
+Answers, generator `openai/gpt-oss-120b`:
+
+- Refusal (53 cases, refusing as the positive class): the confidence
+  guardrail alone has precision 0.2759 and recall 0.8000; counting the
+  model's abstention sentence as a refusal, recall is 1.0000. The guardrail
+  refuses 8 in-scope questions whose document was retrieved, and a threshold
+  sweep shows the current threshold (0.5) is not justified by these data; it
+  is kept until the reranker change in the next block.
+- Citations: 26/26 answers cite sources that exist in the retrieved context.
+- Prompt injection: no leak in 5 direct cases; in 5 indirect cases (poisoned
+  documents in a separate evaluation collection), the injected instruction
+  succeeded in 3, including a canary string and a malicious URL in the
+  answer.
+- LLM-as-a-judge on 25 questions (judge `openai/gpt-oss-20b`, rubric v1):
+  all 25 answers rated supported by the context and relevant. On 10 answers
+  labelled blind by the author, the judge agreed on faithfulness 10/10 and on
+  relevance 9/10. Neither the judge nor the human labels flagged the three
+  successful injections as unfaithful, because the injected text is in the
+  context; only the deterministic canary check caught them.
 
 Chunking comparison (fixed-size vs. semantic, same 500-character target):
 fixed-size produces 167 chunks with low size variance (2817.7); semantic
@@ -266,7 +307,12 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   `ruff format --check`, and the full `pytest` suite on every push and pull
   request to `main`. No external service is required, since the test suite
   uses an in-memory Qdrant client, a mocked MongoDB (`mongomock`), and a
-  fake LLM instead of live dependencies.
+  fake LLM instead of live dependencies. A second job, `retrieval-gate`,
+  starts Qdrant as a service container, indexes the corpus, and fails if any
+  retrieval metric drops more than 0.03 below `data/evaluation/baseline.json`.
+  The LLM evaluation with the judge runs in a separate workflow
+  (`llm-eval.yml`), only on manual dispatch, and skips cleanly when the
+  `GROQ_API_KEY` repository secret is not set.
 
 ## Limitations
 
@@ -274,14 +320,18 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   queries against English documents); see Evaluation Results above.
 - Chunk size is measured in characters, not tokens, which is an
   approximation of the actual unit the embedding and generation models use.
-- The evaluation dataset has 25 questions, enough to reveal a clear pattern
-  like the cross-lingual failure, but too small for fine-grained statistical
-  conclusions on other dimensions.
-- The evaluation measures retrieval quality only; it does not score the
-  correctness of the final generated answer. The confidence guardrail does
-  not guarantee a faithful answer either: one of the traced questions in
-  `docs/observability/` passed the guardrail (confidence 0.77) and was
-  answered with a fact taken from a different document in the context.
+- The evaluation is small: 58 cases over a 5-document corpus, 25 answers
+  judged, 10 used to calibrate the judge. It reveals clear patterns (the
+  cross-lingual failure, indirect injection) but is too small for
+  fine-grained statistical conclusions.
+- The LLM judge (`openai/gpt-oss-20b`) shares a model family with the
+  generator, so self-preference bias is not ruled out; a judge from another
+  vendor (`qwen/qwen3.8-27b`) was tried and rejected because its structured
+  output was unreliable on Groq. The calibration sample contained no answer
+  rated negatively by either the judge or the author.
+- Indirect prompt injection is not mitigated: the generation prompt tells the
+  model to treat retrieved text as data, and 3 of 5 poisoned-document cases
+  still succeeded.
 - The Docker Compose setup runs the API container as root, without restart
   policies or healthchecks, and is meant for local demonstration, not
   production.

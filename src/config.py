@@ -33,6 +33,16 @@ class Settings:
     groq_price_input_per_million: float = float(os.getenv("GROQ_PRICE_INPUT_PER_MILLION", "0.15"))
     groq_price_output_per_million: float = float(os.getenv("GROQ_PRICE_OUTPUT_PER_MILLION", "0.60"))
 
+    # Juiz LLM da avaliacao (Bloco 18). Modelo diferente do gerador, mas da mesma familia:
+    # o qwen/qwen3.8-27b (outro fornecedor, preferivel contra o self-preference bias) teve
+    # 9/26 veredictos rejeitados em modo strict e ignorou o schema em modo nao-strict.
+    judge_model: str = os.getenv("JUDGE_MODEL", "openai/gpt-oss-20b")
+    # Inclui os tokens de raciocinio do gpt-oss: com 1024, um veredicto foi cortado antes
+    # de o JSON terminar (Groq 400, "max completion tokens reached").
+    judge_max_tokens: int = int(os.getenv("JUDGE_MAX_TOKENS", "2048"))
+    # Vazio = parametro omitido (raciocinio por omissao do modelo).
+    judge_reasoning_effort: str = os.getenv("JUDGE_REASONING_EFFORT", "")
+
     langfuse_public_key: str = os.getenv("LANGFUSE_PUBLIC_KEY", "")
     langfuse_secret_key: str = os.getenv("LANGFUSE_SECRET_KEY", "")
     langfuse_base_url: str = os.getenv("LANGFUSE_BASE_URL", "http://localhost:3000")

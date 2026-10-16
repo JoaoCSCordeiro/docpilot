@@ -1,5 +1,9 @@
 # Avaliação do retrieval - resultados reais
 
+> Este documento descreve a avaliação original (Bloco 8, 25 perguntas). A
+> avaliação alargada do Bloco 18 (58 casos, MRR, recusas, prompt injection e
+> LLM-as-a-judge) está em `docs/evaluation/README.md`.
+
 ## Setup
 
 - Dataset: `data/evaluation/qa_dataset.json`, 25 perguntas em português,

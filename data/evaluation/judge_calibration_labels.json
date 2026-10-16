@@ -1,0 +1,52 @@
+[
+  {
+    "id": 4,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 12,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 14,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 15,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 29,
+    "faithfulness": "supported",
+    "relevance": "partially_relevant"
+  },
+  {
+    "id": 35,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 36,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 56,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 57,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  },
+  {
+    "id": 58,
+    "faithfulness": "supported",
+    "relevance": "relevant"
+  }
+]

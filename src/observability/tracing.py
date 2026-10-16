@@ -61,6 +61,25 @@ def request_trace(name: str, entrypoint: str, input: Any) -> Iterator[Any]:
             yield root
 
 
+def current_trace_id() -> str | None:
+    client = get_langfuse()
+    if client is None:
+        return None
+    return client.get_current_trace_id()
+
+
+def score_trace(
+    trace_id: str | None, name: str, value: float | str, comment: str | None = None
+) -> None:
+    client = get_langfuse()
+    if client is None or trace_id is None:
+        return
+    data_type = "CATEGORICAL" if isinstance(value, str) else "NUMERIC"
+    client.create_score(
+        name=name, value=value, trace_id=trace_id, data_type=data_type, comment=comment
+    )
+
+
 def flush() -> None:
     client = get_langfuse()
     if client is not None:

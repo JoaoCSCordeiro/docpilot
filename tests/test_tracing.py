@@ -61,9 +61,13 @@ def exporter():
 @pytest.fixture
 def no_cache(monkeypatch: pytest.MonkeyPatch) -> dict:
     store: dict = {}
-    monkeypatch.setattr(llm_module, "get_cached_response", lambda prompt: store.get(prompt))
     monkeypatch.setattr(
-        llm_module, "store_response", lambda prompt, response: store.__setitem__(prompt, response)
+        llm_module, "get_cached_response", lambda model, prompt: store.get((model, prompt))
+    )
+    monkeypatch.setattr(
+        llm_module,
+        "store_response",
+        lambda model, prompt, response: store.__setitem__((model, prompt), response),
     )
     monkeypatch.setattr(llm_module, "log_usage", lambda **kwargs: None)
     return store
@@ -105,8 +109,12 @@ def test_tracing_is_a_no_op_without_langfuse_keys(monkeypatch: pytest.MonkeyPatc
 
 
 def test_answered_query_produces_one_trace_with_a_span_per_node(
-    exporter: InMemorySpanExporter, no_cache: dict, populated_client: QdrantClient
+    exporter: InMemorySpanExporter,
+    no_cache: dict,
+    populated_client: QdrantClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(settings, "groq_model", FakeChatGroq.model_name)
     graph = build_graph(
         populated_client,
         _guarded_llm(FakeChatGroq()),
@@ -130,6 +138,7 @@ def test_answered_query_produces_one_trace_with_a_span_per_node(
     root = spans["docpilot-query"]
     assert root.parent is None
     assert root.attributes["langfuse.trace.tags"] == ("api",)
+    assert state["trace_id"] == format(root.context.trace_id, "032x")
     assert spans["retrieve"].attributes["langfuse.observation.type"] == "retriever"
     assert spans["assess_confidence"].attributes["langfuse.observation.type"] == "guardrail"
     assert spans["llm"].parent.span_id == spans["generate_answer"].context.span_id
@@ -226,3 +235,19 @@ async def test_mcp_ask_docpilot_is_traced_with_mcp_tag(exporter: InMemorySpanExp
     root = spans["docpilot-query"]
     assert root.attributes["langfuse.trace.tags"] == ("mcp",)
     assert json.loads(root.attributes["langfuse.observation.output"])["decision"] == "answered"
+
+
+def test_generation_for_a_model_without_configured_price_has_no_cost_estimate(
+    exporter: InMemorySpanExporter, no_cache: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "groq_model", "outro-modelo")
+
+    _guarded_llm(FakeChatGroq()).invoke("prompt do juiz")
+
+    tracing.flush()
+    (generation,) = [span for span in exporter.get_finished_spans() if span.name == "llm"]
+    assert "langfuse.observation.cost_details" not in generation.attributes
+    assert json.loads(generation.attributes["langfuse.observation.usage_details"]) == {
+        "input": 120,
+        "output": 30,
+    }

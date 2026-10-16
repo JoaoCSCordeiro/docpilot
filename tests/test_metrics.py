@@ -1,6 +1,13 @@
 import pytest
 
-from src.evaluation.metrics import precision_at_k, recall_at_k
+from src.evaluation.metrics import (
+    mean,
+    mean_by_group,
+    precision_at_k,
+    recall_at_k,
+    reciprocal_rank,
+    refusal_metrics,
+)
 
 
 def test_recall_at_k_is_one_when_expected_source_is_retrieved() -> None:
@@ -45,3 +52,48 @@ def test_precision_at_k_is_one_when_all_retrieved_are_relevant() -> None:
     expected = ["a.md"]
 
     assert precision_at_k(retrieved, expected) == 1.0
+
+
+def test_reciprocal_rank_uses_position_of_first_relevant_source() -> None:
+    assert reciprocal_rank(["b.md", "a.md", "a.md"], ["a.md"]) == 0.5
+
+
+def test_reciprocal_rank_is_zero_when_no_relevant_source_is_retrieved() -> None:
+    assert reciprocal_rank(["b.md", "c.md"], ["a.md"]) == 0.0
+
+
+def test_mean_of_empty_values_is_none() -> None:
+    assert mean([]) is None
+
+
+def test_mean_by_group_reports_count_and_mean_per_group() -> None:
+    rows = [
+        {"language": "pt", "recall": 1.0},
+        {"language": "en", "recall": 0.0},
+        {"language": "en", "recall": 1.0},
+    ]
+
+    assert mean_by_group(rows, "language", "recall") == {
+        "en": {"n": 2, "mean": 0.5},
+        "pt": {"n": 1, "mean": 1.0},
+    }
+
+
+def test_refusal_metrics_treats_refusing_as_the_positive_class() -> None:
+    should_refuse = [True, True, False, False, False]
+    refused = [True, False, True, False, False]
+
+    metrics = refusal_metrics(should_refuse, refused)
+
+    assert metrics["precision"] == 0.5
+    assert metrics["recall"] == 0.5
+    assert metrics["true_refusals"] == 1
+    assert metrics["false_refusals"] == 1
+    assert metrics["missed_refusals"] == 1
+
+
+def test_refusal_precision_is_undefined_when_nothing_is_refused() -> None:
+    metrics = refusal_metrics([True, False], [False, False])
+
+    assert metrics["precision"] is None
+    assert metrics["recall"] == 0.0

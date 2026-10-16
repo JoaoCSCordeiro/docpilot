@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-10-16",
+  "commit": "d2bdf48",
+  "dataset": "qa_dataset_v2.json",
+  "n": 40,
+  "top_k": 5,
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+  "tolerance": 0.03,
+  "metrics": {
+    "recall_at_k": 0.725,
+    "precision_at_k": 0.62,
+    "mrr": 0.6833,
+    "precision_at_1_after_rerank": 0.7,
+    "by_question_language.en.recall_at_k": 1.0,
+    "by_question_language.pt.recall_at_k": 0.56,
+    "by_document_language.en.recall_at_k": 0.5217,
+    "by_document_language.pt.recall_at_k": 1.0
+  }
+}
