@@ -1,8 +1,11 @@
 import pytest
 from qdrant_client import QdrantClient
+from qdrant_client.models import SparseVector
 
 from src.ingestion.chunking_fixed import Chunk
 from src.retrieval.vector_store import (
+    DENSE_VECTOR_NAME,
+    SPARSE_VECTOR_NAME,
     chunk_point_id,
     count_chunks_by_source,
     ensure_collection,
@@ -11,6 +14,10 @@ from src.retrieval.vector_store import (
 
 COLLECTION_NAME = "test_collection"
 VECTOR_SIZE = 4
+
+
+def sparse_stubs(count: int) -> list[SparseVector]:
+    return [SparseVector(indices=[index], values=[1.0]) for index in range(count)]
 
 
 @pytest.fixture
@@ -55,7 +62,7 @@ def test_index_chunks_makes_documents_retrievable_by_id(client: QdrantClient) ->
     embeddings = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]]
 
     ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
-    index_chunks(client, COLLECTION_NAME, chunks, embeddings)
+    index_chunks(client, COLLECTION_NAME, chunks, embeddings, sparse_stubs(len(chunks)))
 
     retrieved = client.retrieve(COLLECTION_NAME, ids=[chunk_point_id(chunks[0])])
 
@@ -72,9 +79,11 @@ def test_index_chunks_search_returns_most_similar_chunk_first(client: QdrantClie
     embeddings = [[1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
 
     ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
-    index_chunks(client, COLLECTION_NAME, chunks, embeddings)
+    index_chunks(client, COLLECTION_NAME, chunks, embeddings, sparse_stubs(len(chunks)))
 
-    results = client.query_points(COLLECTION_NAME, query=[0.9, 0.1, 0.0, 0.0], limit=1).points
+    results = client.query_points(
+        COLLECTION_NAME, query=[0.9, 0.1, 0.0, 0.0], using=DENSE_VECTOR_NAME, limit=1
+    ).points
 
     assert results[0].payload["text"] == "sobre gatos"
 
@@ -86,15 +95,32 @@ def test_index_chunks_rejects_mismatched_lengths(client: QdrantClient) -> None:
     ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
 
     with pytest.raises(ValueError):
-        index_chunks(client, COLLECTION_NAME, chunks, embeddings)
+        index_chunks(client, COLLECTION_NAME, chunks, embeddings, sparse_stubs(len(chunks)))
 
 
 def test_count_chunks_by_source_walks_every_scroll_page(client: QdrantClient) -> None:
     chunks = [Chunk(source="b.md", position=i, text=f"b{i}") for i in range(3)]
     chunks.append(Chunk(source="a.md", position=0, text="a0"))
     ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
-    index_chunks(client, COLLECTION_NAME, chunks, [[1.0, 0.0, 0.0, 0.0]] * len(chunks))
+    index_chunks(
+        client,
+        COLLECTION_NAME,
+        chunks,
+        [[1.0, 0.0, 0.0, 0.0]] * len(chunks),
+        sparse_stubs(len(chunks)),
+    )
 
     counts = count_chunks_by_source(client, COLLECTION_NAME, page_size=2)
 
     assert counts == {"a.md": 1, "b.md": 3}
+
+
+def test_ensure_collection_creates_named_dense_and_idf_sparse_vectors(
+    client: QdrantClient,
+) -> None:
+    ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
+
+    params = client.get_collection(COLLECTION_NAME).config.params
+
+    assert params.vectors[DENSE_VECTOR_NAME].size == VECTOR_SIZE
+    assert params.sparse_vectors[SPARSE_VECTOR_NAME].modifier == "idf"

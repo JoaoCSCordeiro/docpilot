@@ -64,6 +64,8 @@ def main() -> None:
             "top_k": settings.retrieval_top_k,
             "embedding_model": settings.embedding_model_name,
             "reranker_model": settings.reranker_model_name,
+            "retrieval_mode": settings.retrieval_mode,
+            "bm25_language": settings.bm25_language,
             "tolerance": args.tolerance if args.tolerance is not None else 0.03,
             "metrics": {name: round(value, 4) for name, value in current.items()},
         }

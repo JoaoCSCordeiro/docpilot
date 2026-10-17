@@ -3,8 +3,7 @@ from qdrant_client import QdrantClient
 
 from src.agent.graph import REFUSAL_MESSAGE, build_graph
 from src.ingestion.chunking_fixed import Chunk
-from src.retrieval.embeddings import embed_texts, embedding_dimension
-from src.retrieval.vector_store import ensure_collection, index_chunks
+from src.ingestion.indexing import index_chunks_with_embeddings
 
 COLLECTION_NAME = "test_agent_collection"
 FAKE_ANSWER = "FastAPI e uma framework web para construir APIs em Python, baseada em type hints."
@@ -35,10 +34,7 @@ def populated_client() -> QdrantClient:
             text="Docker Compose orquestra multiplos containers a partir de um unico ficheiro.",
         ),
     ]
-    embeddings = embed_texts([chunk.text for chunk in chunks])
-
-    ensure_collection(client, COLLECTION_NAME, embedding_dimension())
-    index_chunks(client, COLLECTION_NAME, chunks, embeddings)
+    index_chunks_with_embeddings(client, COLLECTION_NAME, chunks)
     return client
 
 

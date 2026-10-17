@@ -1,3 +1,4 @@
+from src.retrieval import embeddings
 from src.retrieval.embeddings import embed_texts, embedding_dimension
 
 
@@ -29,3 +30,26 @@ def test_embed_texts_similar_sentences_are_closer_than_unrelated_ones() -> None:
     )
 
     assert cosine_similarity(anchor, similar) > cosine_similarity(anchor, unrelated)
+
+
+def test_e5_queries_and_passages_get_distinct_prefixes(monkeypatch) -> None:
+    encoded: list[list[str]] = []
+    monkeypatch.setattr(
+        embeddings, "embed_texts", lambda texts, model_name=None: encoded.append(texts) or []
+    )
+
+    embeddings.embed_queries(["o que e o Qdrant?"], "intfloat/multilingual-e5-small")
+    embeddings.embed_passages(["Qdrant e uma base vetorial."], "intfloat/multilingual-e5-small")
+
+    assert encoded == [["query: o que e o Qdrant?"], ["passage: Qdrant e uma base vetorial."]]
+
+
+def test_models_without_known_prefixes_embed_text_unchanged(monkeypatch) -> None:
+    encoded: list[list[str]] = []
+    monkeypatch.setattr(
+        embeddings, "embed_texts", lambda texts, model_name=None: encoded.append(texts) or []
+    )
+
+    embeddings.embed_queries(["pergunta"], "sentence-transformers/all-MiniLM-L6-v2")
+
+    assert encoded == [["pergunta"]]

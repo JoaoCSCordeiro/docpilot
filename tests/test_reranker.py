@@ -43,3 +43,13 @@ def test_rerank_preserves_chunk_metadata() -> None:
 
     assert reranked[0].source == "doc.md"
     assert reranked[0].position == 0
+
+
+def test_rerank_returns_logits_not_probabilities() -> None:
+    # O guardrail aplica sigmoid; se o modelo ja devolvesse probabilidades, o score de um
+    # chunk irrelevante nunca seria negativo.
+    chunks = [RetrievedChunk(source="doc.md", position=0, text="Bananas are yellow.", score=0.5)]
+
+    reranked = rerank("What is the capital of France?", chunks)
+
+    assert reranked[0].score < 0

@@ -45,10 +45,14 @@ Components:
 - Ingestion (`src/ingestion`): loads markdown/text files and splits them into
   chunks. Two strategies are implemented and compared, fixed-size and
   semantic (paragraph/sentence aware).
-- Retrieval (`src/retrieval`): generates embeddings with `sentence-transformers`
-  (local, CPU, no external API), indexes them in Qdrant, and retrieves the
-  top-k most similar chunks for a query. A cross-encoder reranks the
-  candidates before they reach the agent.
+- Retrieval (`src/retrieval`): indexes each chunk in Qdrant with two named
+  vectors, a dense multilingual embedding (`sentence-transformers`, local,
+  CPU, no external API) and a sparse BM25 vector (`fastembed`, IDF computed
+  by Qdrant). Retrieval runs in `dense`, `sparse` or `hybrid` mode
+  (`RETRIEVAL_MODE`); hybrid fuses both rankings with Reciprocal Rank Fusion
+  through the Qdrant Query API. A multilingual cross-encoder reranks the
+  candidates before they reach the agent. The defaults were chosen by an
+  ablation, see `docs/hybrid-retrieval.md`.
 - Agent (`src/agent`): a LangGraph state graph orchestrates
   retrieve, rerank, assess confidence, and generate answer or refuse. The
   confidence guardrail is a separate, testable function, not left to the
@@ -121,7 +125,12 @@ python scripts/ask_agent.py "What library does the ASL translator use for hand d
 Other scripts:
 
 - `scripts/index_documents.py`: runs the full ingestion pipeline (load, chunk,
-  embed, index) against `data/raw`.
+  dense and sparse embeddings, index) against `data/raw`. `--recreate`
+  rebuilds the collection; `--collection`, `--embedding-model` and
+  `--bm25-language` override the configured defaults.
+- `scripts/run_retrieval_ablation.py`: compares embedding models, retrieval
+  modes, BM25 stemming options and rerankers on the 58-case dataset without
+  calling an LLM, and writes `docs/evaluation/retrieval-ablation.json`.
 - `scripts/run_evaluation.py`: runs the original 25-question dataset
   (`data/evaluation/qa_dataset.json`) against the retrieval pipeline and
   prints recall/precision metrics.
@@ -225,53 +234,67 @@ including an incorrect answer that passed the confidence guardrail.
 
 ## Evaluation Results
 
-Full methodology and per-case results in `docs/evaluation/README.md` (answer
+Full methodology and per-case results in `docs/hybrid-retrieval.md`
+(retrieval ablation, Block 19), `docs/evaluation/README.md` (answer
 evaluation, Block 18) and `docs/evaluation-results.md` (original retrieval
-evaluation). Numbers below come from one run on 2026-10-16 with a 58-case
-dataset: 40 in-scope questions (25 Portuguese, 15 English), 8 out-of-scope
-questions, and 10 prompt injection cases.
+evaluation). The dataset has 58 cases: 40 in-scope questions (25 Portuguese,
+15 English), 8 out-of-scope questions, and 10 prompt injection cases.
 
-Retrieval, 40 in-scope questions, top 5:
+Retrieval, 40 in-scope questions, top 5. Before: `all-MiniLM-L6-v2` dense
+with the English `ms-marco-MiniLM-L-6-v2` reranker (2026-10-16). After:
+`multilingual-e5-small` hybrid with Portuguese-stemmed BM25 and the
+multilingual `mmarco-mMiniLMv2-L12-H384-v1` reranker (2026-10-17):
 
-| Metric | Value |
-|---|---|
-| Recall@5 | 0.7250 |
-| Precision@5 | 0.6200 |
-| MRR | 0.6833 |
-| Precision@1 (before / after reranking) | 0.6500 / 0.7000 |
-
-| Question -> document language | N | Recall@5 |
+| Metric | Before | After |
 |---|---|---|
-| English -> English | 9 | 1.0000 |
-| English -> Portuguese | 6 | 1.0000 |
-| Portuguese -> English | 14 | 0.2143 |
-| Portuguese -> Portuguese | 11 | 1.0000 |
+| Recall@5 | 0.7250 | 1.0000 |
+| Precision@5 | 0.6200 | 0.7650 |
+| MRR (retrieval order) | 0.6833 | 0.9625 |
+| Precision@1 after reranking | 0.7000 | 1.0000 |
+| Mean latency, retrieval / reranking (laptop CPU) | 23.2 / 112.4 ms | 36.2 / 215.1 ms |
 
-The retrieval failure is cross-lingual and one-directional: Portuguese
-questions about English documents reach 0.2143, while English questions
-retrieve Portuguese documents without loss. The embedding model
-(`all-MiniLM-L6-v2`) is predominantly trained on English. Reranking improves
-precision@1 within the retrieved candidates but cannot recover a document
-that never reached the top-k.
+| Question -> document language | N | Recall@5 before | Recall@5 after |
+|---|---|---|---|
+| English -> English | 9 | 1.0000 | 1.0000 |
+| English -> Portuguese | 6 | 1.0000 | 1.0000 |
+| Portuguese -> English | 14 | 0.2143 | 1.0000 |
+| Portuguese -> Portuguese | 11 | 1.0000 | 1.0000 |
 
-Answers, generator `openai/gpt-oss-120b`:
+The original failure was cross-lingual: the English-trained
+`all-MiniLM-L6-v2` retrieved English documents for Portuguese questions in
+3 of 14 cases. In the ablation of 30 configurations (3 embedding models x
+dense / sparse / hybrid x 3 BM25 stemming options x 2 rerankers), sparse BM25
+alone raised that pair to 0.7143-0.8571, multilingual dense embeddings to
+0.7857-0.9286, and only the chosen hybrid reached 1.0000. The English
+cross-encoder lowered MRR in every multilingual configuration, and the
+multilingual one kept or raised it. The configuration was chosen on the same
+questions it is measured on, with no held-out set, and the runner-up is one
+question behind on Recall@5.
 
-- Refusal (53 cases, refusing as the positive class): the confidence
-  guardrail alone has precision 0.2759 and recall 0.8000; counting the
-  model's abstention sentence as a refusal, recall is 1.0000. The guardrail
-  refuses 8 in-scope questions whose document was retrieved, and a threshold
-  sweep shows the current threshold (0.5) is not justified by these data; it
-  is kept until the reranker change in the next block.
-- Citations: 26/26 answers cite sources that exist in the retrieved context.
-- Prompt injection: no leak in 5 direct cases; in 5 indirect cases (poisoned
-  documents in a separate evaluation collection), the injected instruction
-  succeeded in 3, including a canary string and a malicious URL in the
-  answer.
-- LLM-as-a-judge on 25 questions (judge `openai/gpt-oss-20b`, rubric v1):
-  all 25 answers rated supported by the context and relevant. On 10 answers
-  labelled blind by the author, the judge agreed on faithfulness 10/10 and on
-  relevance 9/10. Neither the judge nor the human labels flagged the three
-  successful injections as unfaithful, because the injected text is in the
+Answers, generator `openai/gpt-oss-120b`, repeated on 2026-10-17 with the
+Block 19 retrieval and threshold 0.1 (`docs/evaluation/block19/`; the
+Block 18 run is in `docs/evaluation/`):
+
+- Refusal (53 cases, refusing as the positive class): the guardrail alone
+  has precision 0.7273 and recall 0.8000 (Block 18: 0.2759 / 0.8000);
+  counting the model's abstention sentence as a refusal, recall is 1.0000.
+  In-scope questions answered went from 20 to 34 of 40. The two
+  out-of-scope questions closest to the corpus pass the guardrail and are
+  caught only by the model's abstention.
+- Citations: 40/41 answers cite only sources that exist in the retrieved
+  context.
+- Prompt injection: 1 leak in 5 direct cases and 3 in 5 indirect cases
+  (poisoned documents in a separate evaluation collection). In Block 18 the
+  direct cases had no leak, but only because the English reranker gave the
+  leaking question a low score and the guardrail refused it; with the
+  multilingual reranker it reaches the model, which follows the injected
+  instruction.
+- LLM-as-a-judge on 41 answered questions (judge `openai/gpt-oss-20b`,
+  rubric v1): 39 supported and 2 partially supported (both injection
+  cases), 40 relevant and 1 irrelevant. On 10 Block 18 answers labelled blind
+  by the author, the judge agreed on faithfulness 10/10 and on relevance
+  9/10. Neither the judge nor the human labels flagged the successful
+  indirect injections as unfaithful, because the injected text is in the
   context; only the deterministic canary check caught them.
 
 Chunking comparison (fixed-size vs. semantic, same 500-character target):
@@ -316,12 +339,13 @@ HTML sponsor badge block with no sentence punctuation becomes a single
 
 ## Limitations
 
-- Retrieval degrades substantially in cross-lingual scenarios (Portuguese
-  queries against English documents); see Evaluation Results above.
+- The retrieval configuration and the confidence threshold were selected on
+  the evaluation questions themselves (no held-out set), so the Block 19
+  numbers, including Recall@5 1.0000, are optimistic for unseen questions.
 - Chunk size is measured in characters, not tokens, which is an
   approximation of the actual unit the embedding and generation models use.
-- The evaluation is small: 58 cases over a 5-document corpus, 25 answers
-  judged, 10 used to calibrate the judge. It reveals clear patterns (the
+- The evaluation is small: 58 cases over a 5-document corpus, 41 answers
+  judged in the latest run, 10 used to calibrate the judge. It reveals clear patterns (the
   cross-lingual failure, indirect injection) but is too small for
   fine-grained statistical conclusions.
 - The LLM judge (`openai/gpt-oss-20b`) shares a model family with the
@@ -329,9 +353,9 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   vendor (`qwen/qwen3.8-27b`) was tried and rejected because its structured
   output was unreliable on Groq. The calibration sample contained no answer
   rated negatively by either the judge or the author.
-- Indirect prompt injection is not mitigated: the generation prompt tells the
-  model to treat retrieved text as data, and 3 of 5 poisoned-document cases
-  still succeeded.
+- Prompt injection is not mitigated: the generation prompt tells the model
+  to treat retrieved text and the question as data, yet 3 of 5
+  poisoned-document cases and 1 of 5 direct cases still succeeded.
 - The Docker Compose setup runs the API container as root, without restart
   policies or healthchecks, and is meant for local demonstration, not
   production.

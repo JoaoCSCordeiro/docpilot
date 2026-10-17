@@ -1,7 +1,14 @@
 import uuid
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    Modifier,
+    PointStruct,
+    SparseVector,
+    SparseVectorParams,
+    VectorParams,
+)
 
 from src.config import settings
 from src.ingestion.chunking_fixed import Chunk
@@ -10,6 +17,9 @@ from src.ingestion.chunking_fixed import Chunk
 # tornando a indexacao idempotente: reindexar o mesmo chunk atualiza o ponto
 # existente em vez de duplicar.
 _CHUNK_ID_NAMESPACE = uuid.UUID("6f6f0f2e-6c4c-4e3e-8f8e-1c9a2f6d5b7a")
+
+DENSE_VECTOR_NAME = "dense"
+SPARSE_VECTOR_NAME = "sparse"
 
 
 def get_client() -> QdrantClient:
@@ -21,7 +31,11 @@ def ensure_collection(client: QdrantClient, collection_name: str, vector_size: i
         return
     client.create_collection(
         collection_name=collection_name,
-        vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+        vectors_config={
+            DENSE_VECTOR_NAME: VectorParams(size=vector_size, distance=Distance.COSINE)
+        },
+        # O IDF do BM25 e calculado pelo Qdrant sobre a coleccao; o fastembed so envia o TF.
+        sparse_vectors_config={SPARSE_VECTOR_NAME: SparseVectorParams(modifier=Modifier.IDF)},
     )
 
 
@@ -33,18 +47,19 @@ def index_chunks(
     client: QdrantClient,
     collection_name: str,
     chunks: list[Chunk],
-    embeddings: list[list[float]],
+    dense_embeddings: list[list[float]],
+    sparse_embeddings: list[SparseVector],
 ) -> None:
-    if len(chunks) != len(embeddings):
+    if not len(chunks) == len(dense_embeddings) == len(sparse_embeddings):
         raise ValueError("chunks e embeddings devem ter o mesmo tamanho")
 
     points = [
         PointStruct(
             id=chunk_point_id(chunk),
-            vector=embedding,
+            vector={DENSE_VECTOR_NAME: dense, SPARSE_VECTOR_NAME: sparse},
             payload={"source": chunk.source, "position": chunk.position, "text": chunk.text},
         )
-        for chunk, embedding in zip(chunks, embeddings)
+        for chunk, dense, sparse in zip(chunks, dense_embeddings, sparse_embeddings)
     ]
     client.upsert(collection_name=collection_name, points=points)
 

@@ -48,7 +48,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: hf-all-MiniLM-L6-v2-ms-marco-MiniLM-L-6-v2
+          key: hf-multilingual-e5-small-mmarco-mMiniLMv2-L12-H384-v1
 
       - name: Wait for Qdrant
         if: env.GROQ_API_KEY != ''

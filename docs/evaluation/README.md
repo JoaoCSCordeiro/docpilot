@@ -6,6 +6,12 @@ LLM-as-a-judge on the generated answers. All numbers below come from one run
 on 2026-10-16 (`llm-eval-report.md`, `llm-eval-results.json`), started from
 commit `d2bdf48` with this block's changes not yet committed.
 
+The same evaluation was repeated on 2026-10-17 with the Block 19 retrieval
+(multilingual embeddings, hybrid retrieval, multilingual reranker,
+threshold 0.1) in `block19/`; the comparison is in
+`docs/hybrid-retrieval.md`. The numbers below are those of the Block 18
+setup.
+
 Files:
 
 - `llm-eval-report.md` / `llm-eval-results.json`: report and raw results of

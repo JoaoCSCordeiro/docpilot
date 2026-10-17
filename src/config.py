@@ -8,20 +8,27 @@ load_dotenv()
 class Settings:
     qdrant_host: str = os.getenv("QDRANT_HOST", "localhost")
     qdrant_port: int = int(os.getenv("QDRANT_PORT", "6333"))
-    qdrant_collection_name: str = os.getenv("QDRANT_COLLECTION_NAME", "docpilot")
+    qdrant_collection_name: str = os.getenv("QDRANT_COLLECTION_NAME", "docpilot_v2")
 
     mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     mongo_db_name: str = os.getenv("MONGO_DB_NAME", "docpilot")
 
-    embedding_model_name: str = os.getenv(
-        "EMBEDDING_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2"
-    )
+    # Defaults escolhidos pela ablation do Bloco 19 (docs/hybrid-retrieval.md).
+    embedding_model_name: str = os.getenv("EMBEDDING_MODEL_NAME", "intfloat/multilingual-e5-small")
     reranker_model_name: str = os.getenv(
-        "RERANKER_MODEL_NAME", "cross-encoder/ms-marco-MiniLM-L-6-v2"
+        "RERANKER_MODEL_NAME", "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
     )
 
+    # dense | sparse | hybrid; todos usam a mesma coleccao com named vectors (Bloco 19).
+    retrieval_mode: str = os.getenv("RETRIEVAL_MODE", "hybrid")
+    # Lingua do stemmer/stopwords do BM25 (fastembed), ou "none" para os desligar. O
+    # portugues mediu melhor do que o ingles mesmo com metade dos documentos em ingles.
+    bm25_language: str = os.getenv("BM25_LANGUAGE", "portuguese")
+
     retrieval_top_k: int = int(os.getenv("RETRIEVAL_TOP_K", "5"))
-    confidence_threshold: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.5"))
+    # Limiar mais baixo da ablation que mantem as 8 recusas certas de antes (eram 21 recusas
+    # erradas a 0.5 com o setup antigo, 4 aqui); escolhido sobre o mesmo dataset que mede.
+    confidence_threshold: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.1"))
 
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")

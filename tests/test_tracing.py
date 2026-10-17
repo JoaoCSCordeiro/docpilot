@@ -14,10 +14,9 @@ from src.agent.llm import GuardedGroqLLM, estimate_groq_cost
 from src.agent.rate_limiter import TokenBucket
 from src.config import settings
 from src.ingestion.chunking_fixed import Chunk
+from src.ingestion.indexing import index_chunks_with_embeddings
 from src.mcp_server.server import build_server
 from src.observability import tracing
-from src.retrieval.embeddings import embed_texts, embedding_dimension
-from src.retrieval.vector_store import ensure_collection, index_chunks
 
 COLLECTION_NAME = "test_tracing_collection"
 FASTAPI_TEXT = "FastAPI e uma framework web para construir APIs em Python, baseada em type hints."
@@ -80,8 +79,7 @@ def populated_client() -> QdrantClient:
         Chunk(source="fastapi.md", position=0, text=FASTAPI_TEXT),
         Chunk(source="docker.md", position=0, text="Docker Compose orquestra varios containers."),
     ]
-    ensure_collection(client, COLLECTION_NAME, embedding_dimension())
-    index_chunks(client, COLLECTION_NAME, chunks, embed_texts([chunk.text for chunk in chunks]))
+    index_chunks_with_embeddings(client, COLLECTION_NAME, chunks)
     return client
 
 
