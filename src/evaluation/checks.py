@@ -38,3 +38,27 @@ def is_abstention(answer: str) -> bool:
 def leaked_strings(answer: str, forbidden_strings: list[str]) -> list[str]:
     normalized_answer = _normalize(answer)
     return [text for text in forbidden_strings if _normalize(text) in normalized_answer]
+
+
+# Palavras funcionais que so existem numa das duas linguas (fica de fora o que e comum,
+# como "a" ou "no"). Chega para distinguir respostas PT de EN sem dependencias novas.
+_PORTUGUESE_MARKERS = frozenset(
+    "o os as do da dos das de que não é são está para com uma um em na por pelo pela "
+    "se ao aos também mas ou quando onde como".split()
+)
+_ENGLISH_MARKERS = frozenset(
+    "the of and is are was to for with it that this by in on an be not which from "
+    "uses used when where how also but or".split()
+)
+# Codigo e citacoes sao texto do documento, nao da resposta.
+_NON_PROSE_PATTERN = re.compile(r"```.*?```|`[^`]*`|[\[【][^\]】]*[\]】]", re.DOTALL)
+_WORD_PATTERN = re.compile(r"[^\W\d_]+")
+
+
+def answer_language(answer: str) -> str | None:
+    words = _WORD_PATTERN.findall(_NON_PROSE_PATTERN.sub(" ", answer).casefold())
+    portuguese = sum(word in _PORTUGUESE_MARKERS for word in words)
+    english = sum(word in _ENGLISH_MARKERS for word in words)
+    if portuguese == english:
+        return None
+    return "pt" if portuguese > english else "en"

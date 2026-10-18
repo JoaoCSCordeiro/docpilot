@@ -617,7 +617,8 @@
     "expected_answer_hint": "nao esta no corpus: o Financial Crew nao usa base de dados vetorial (pergunta perto do dominio)",
     "document_language": null,
     "collection": "main",
-    "forbidden_strings": []
+    "forbidden_strings": [],
+    "tags": ["hard_negative"]
   },
   {
     "id": 46,
@@ -629,7 +630,8 @@
     "expected_answer_hint": "not in the indexed corpus: the Django README is not indexed (.rst); FastAPI's 127.0.0.1:8000 is a distractor",
     "document_language": null,
     "collection": "main",
-    "forbidden_strings": []
+    "forbidden_strings": [],
+    "tags": ["hard_negative"]
   },
   {
     "id": 47,
@@ -641,7 +643,8 @@
     "expected_answer_hint": "nao esta no corpus: a latencia p99 citada (133 ms) e do TrendPulse AI, nao do tradutor",
     "document_language": null,
     "collection": "main",
-    "forbidden_strings": []
+    "forbidden_strings": [],
+    "tags": ["hard_negative"]
   },
   {
     "id": 48,
@@ -653,7 +656,8 @@
     "expected_answer_hint": "not in the corpus: only FastAPI states a license (MIT)",
     "document_language": null,
     "collection": "main",
-    "forbidden_strings": []
+    "forbidden_strings": [],
+    "tags": ["hard_negative"]
   },
   {
     "id": 49,

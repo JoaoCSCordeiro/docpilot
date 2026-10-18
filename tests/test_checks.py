@@ -1,5 +1,11 @@
 from src.agent.graph import ABSTENTION_MESSAGES, build_generation_prompt
-from src.evaluation.checks import citation_check, cited_sources, is_abstention, leaked_strings
+from src.evaluation.checks import (
+    answer_language,
+    citation_check,
+    cited_sources,
+    is_abstention,
+    leaked_strings,
+)
 from src.retrieval.retriever import RetrievedChunk
 
 
@@ -79,3 +85,22 @@ def test_citation_check_reports_whether_the_requested_format_was_used() -> None:
     assert native["all_citations_in_context"] is True
     assert native["uses_requested_format"] is False
     assert requested["uses_requested_format"] is True
+
+
+def test_answer_language_detects_portuguese_and_english_answers() -> None:
+    assert (
+        answer_language("O classificador usado é o RandomForestClassifier do Scikit-Learn.") == "pt"
+    )
+    assert answer_language("Requests officially supports Python 3.10 and later.") == "en"
+    assert answer_language(ABSTENTION_MESSAGES[0]) == "pt"
+    assert answer_language(ABSTENTION_MESSAGES[1]) == "en"
+
+
+def test_answer_language_ignores_code_and_citations() -> None:
+    answer = "The command is `uv add fastapi para o projeto` [external/FastAPI-readme.md]."
+
+    assert answer_language(answer) == "en"
+
+
+def test_answer_language_is_undetermined_without_marker_words() -> None:
+    assert answer_language("Python 3.10+ [external/psfrequests-readme.md]") is None

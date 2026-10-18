@@ -18,10 +18,14 @@ from src.agent.graph import (  # noqa: E402
 from src.agent.llm import LLMResponse, get_llm  # noqa: E402
 from src.agent.llm_cache import get_cached_response  # noqa: E402
 from src.config import settings  # noqa: E402
-from src.evaluation.checks import citation_check, is_abstention, leaked_strings  # noqa: E402
+from src.evaluation.checks import (  # noqa: E402
+    answer_language,
+    citation_check,
+    is_abstention,
+    leaked_strings,
+)
 from src.evaluation.dataset import (  # noqa: E402
-    DATASET_V2_PATH,
-    POISONED_DIR,
+    DATASETS,
     POISONED_SOURCE_PREFIX,
     Category,
     EvalCase,
@@ -102,10 +106,10 @@ def git_commit() -> str:
     return f"{commit}{' (working tree with uncommitted changes)' if dirty else ''}"
 
 
-def build_injection_collection(client, collection_name: str) -> int:
+def build_injection_collection(client, collection_name: str, poisoned_dir: Path) -> int:
     poisoned = [
         Document(source=POISONED_SOURCE_PREFIX + document.source, content=document.content)
-        for document in load_documents(POISONED_DIR)
+        for document in load_documents(poisoned_dir)
     ]
     # Recriada a cada execucao a partir do corpus principal mais os envenenados, para a
     # coleccao principal nunca ver os documentos com injection.
@@ -151,6 +155,7 @@ def evaluate_case(case: EvalCase, state: dict, retrieval_row: dict) -> dict:
         "language": case.language,
         "document_language": case.document_language,
         "collection": case.collection,
+        "tags": case.tags,
         "should_refuse": case.should_refuse,
         "expected_sources": case.expected_sources,
         "expected_answer_hint": case.expected_answer_hint,
@@ -170,6 +175,8 @@ def evaluate_case(case: EvalCase, state: dict, retrieval_row: dict) -> dict:
         "trace_id": state.get("trace_id"),
     }
     record["refused_end_to_end"] = refused_by_guardrail or record["abstained"]
+    if not refused_by_guardrail:
+        record["answer_language"] = answer_language(answer)
     if not refused_by_guardrail and not record["abstained"]:
         record["citations"] = citation_check(answer, [chunk.source for chunk in reranked])
     if case.forbidden_strings:
@@ -220,16 +227,30 @@ def summarize(records: list[dict]) -> dict:
     def label_counts(criterion: str) -> dict:
         return dict(Counter(r["judge"][criterion] for r in judged))
 
+    def decisions(group: list[dict]) -> dict:
+        return {
+            "n": len(group),
+            "refused_by_guardrail": sum(r["refused_by_guardrail"] for r in group),
+            "abstained": sum(r["abstained"] for r in group),
+            "answered": sum(not r["refused_end_to_end"] for r in group),
+        }
+
+    def language_counts(group: list[dict]) -> dict:
+        return {
+            "n": len(group),
+            "same_language": sum(r["answer_language"] == r["language"] for r in group),
+            "other_language": sum(r["answer_language"] not in (None, r["language"]) for r in group),
+            "undetermined": sum(r["answer_language"] is None for r in group),
+        }
+
     return {
         "decisions_by_category": {
-            category: {
-                "n": len(group),
-                "refused_by_guardrail": sum(r["refused_by_guardrail"] for r in group),
-                "abstained": sum(r["abstained"] for r in group),
-                "answered": sum(not r["refused_end_to_end"] for r in group),
-            }
+            category: decisions([r for r in records if r["category"] == category])
             for category in sorted({r["category"] for r in records})
-            for group in [[r for r in records if r["category"] == category]]
+        },
+        "decisions_by_tag": {
+            tag: decisions([r for r in records if tag in r["tags"]])
+            for tag in sorted({tag for r in records for tag in r["tags"]})
         },
         "refusal_guardrail_only": refusal_metrics(
             should_refuse, [r["refused_by_guardrail"] for r in refusal_records]
@@ -237,6 +258,13 @@ def summarize(records: list[dict]) -> dict:
         "refusal_end_to_end": refusal_metrics(
             should_refuse, [r["refused_end_to_end"] for r in refusal_records]
         ),
+        # So respostas (sem abstencoes), como na contagem manual do mini-bloco 19.5.
+        "answer_language": {
+            question_language: language_counts(
+                [r for r in answered if r["language"] == question_language]
+            )
+            for question_language in ("pt", "en")
+        },
         "citations": {
             "n": len(cited),
             "with_citation": sum(r["citations"]["has_citation"] for r in cited),
@@ -345,6 +373,20 @@ def render_report(results: dict) -> str:
             f"{stats['abstained']} | {stats['answered']} |"
         )
 
+    if summary["decisions_by_tag"]:
+        lines += [
+            "",
+            "## Decisions by tag",
+            "",
+            "| Tag | N | Guardrail refused | LLM abstained | Answered |",
+            "|---|---|---|---|---|",
+        ]
+        for tag, stats in summary["decisions_by_tag"].items():
+            lines.append(
+                f"| {tag} | {stats['n']} | {stats['refused_by_guardrail']} | "
+                f"{stats['abstained']} | {stats['answered']} |"
+            )
+
     lines += [
         "",
         "## Refusal (in_scope + out_of_scope + injection_direct)",
@@ -380,6 +422,12 @@ def render_report(results: dict) -> str:
         f"{injection['indirect_with_injection_in_context']}/"
         f"{summary['decisions_by_category'].get('injection_indirect', {}).get('n', 0)}",
     ]
+    for question_language, stats in summary["answer_language"].items():
+        lines.append(
+            f"- Answers to {question_language.upper()} questions written in the same language "
+            f"(stopword heuristic): {stats['same_language']}/{stats['n']}, other language "
+            f"{stats['other_language']}, undetermined {stats['undetermined']}"
+        )
 
     judge = summary["judge"]
     lines += [
@@ -412,9 +460,9 @@ def render_report(results: dict) -> str:
         "",
         "## Per case",
         "",
-        "| ID | Category | Lang | Confidence | Outcome | Citations ok | Leak | "
+        "| ID | Category | Lang | Confidence | Outcome | Answer lang | Citations ok | Leak | "
         "Faithfulness | Relevance |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for record in results["cases"]:
         outcome = (
@@ -426,7 +474,7 @@ def render_report(results: dict) -> str:
         judge_verdict = record.get("judge", {})
         lines.append(
             f"| {record['id']} | {record['category']} | {record['language']} | "
-            f"{record['confidence']:.3f} | {outcome} | "
+            f"{record['confidence']:.3f} | {outcome} | {record.get('answer_language') or ''} | "
             f"{'' if citations_ok is None else ('yes' if citations_ok else 'no')} | "
             f"{', '.join(record.get('leaked_strings', []))} | "
             f"{judge_verdict.get('faithfulness', '')} | {judge_verdict.get('relevance', '')} |"
@@ -435,7 +483,13 @@ def render_report(results: dict) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="DocPilot LLM evaluation (dataset v2)")
+    parser = argparse.ArgumentParser(description="DocPilot LLM evaluation")
+    parser.add_argument(
+        "--dataset",
+        choices=DATASETS,
+        default="dev",
+        help="dev = dataset v2 (58 casos); test = conjunto reservado (held-out).",
+    )
     parser.add_argument(
         "--dry-run", action="store_true", help="So retrieval e estimativa de chamadas a Groq."
     )
@@ -450,7 +504,8 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     args = parser.parse_args()
 
-    cases = load_cases()
+    dataset = DATASETS[args.dataset]
+    cases = load_cases(dataset.path)
     if args.ids:
         cases = [case for case in cases if case.id in set(args.ids)]
     if args.categories:
@@ -462,7 +517,7 @@ def main() -> None:
         "main": settings.qdrant_collection_name,
         "injection": settings.qdrant_collection_name + INJECTION_COLLECTION_SUFFIX,
     }
-    chunk_count = build_injection_collection(client, collections["injection"])
+    chunk_count = build_injection_collection(client, collections["injection"], dataset.poisoned_dir)
     print(f"Coleccao de avaliacao '{collections['injection']}': {chunk_count} chunks")
 
     # Passo sem LLM: da as metricas de retrieval, o sweep do threshold e os prompts
@@ -506,7 +561,7 @@ def main() -> None:
             "date": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "commit": git_commit(),
             "command": "python -X utf8 scripts/run_llm_evaluation.py " + " ".join(sys.argv[1:]),
-            "dataset": DATASET_V2_PATH.relative_to(REPO_ROOT).as_posix(),
+            "dataset": dataset.path.relative_to(REPO_ROOT).as_posix(),
             "n_cases": len(cases),
             "generator_model": settings.groq_model,
             "generation_prompt_version": GENERATION_PROMPT_VERSION,

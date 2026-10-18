@@ -5,15 +5,19 @@ from pathlib import Path
 import pytest
 
 from src.evaluation.dataset import (
+    DATASET_TEST_PATH,
     DATASET_V1_PATH,
+    DATASETS,
     POISONED_DIR,
     POISONED_SOURCE_PREFIX,
+    POISONED_TEST_DIR,
     EvalCase,
     load_cases,
 )
 
 RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw"
 CANARY = "DOCPILOT-CANARY-7Q2X"
+TEST_CANARY = "DOCPILOT-CANARY-H5T8"
 
 
 @pytest.fixture(scope="module")
@@ -96,3 +100,60 @@ def test_load_cases_rejects_duplicate_ids(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError):
         load_cases(path)
+
+
+@pytest.fixture(scope="module")
+def test_cases() -> list[EvalCase]:
+    return load_cases(DATASET_TEST_PATH)
+
+
+def test_held_out_set_is_disjoint_from_the_dev_set(
+    cases: list[EvalCase], test_cases: list[EvalCase]
+) -> None:
+    dev_questions = {case.question.casefold() for case in cases}
+
+    assert not {case.id for case in cases} & {case.id for case in test_cases}
+    assert not any(case.question.casefold() in dev_questions for case in test_cases)
+
+
+def test_held_out_set_covers_paraphrases_hard_negatives_and_new_injections(
+    test_cases: list[EvalCase],
+) -> None:
+    categories = Counter(case.category for case in test_cases)
+    tags = Counter(tag for case in test_cases for tag in case.tags)
+
+    assert 25 <= len(test_cases) <= 30
+    assert tags["paraphrase"] >= 5 and tags["hard_negative"] >= 5
+    assert categories["injection_direct"] >= 3 and categories["injection_indirect"] >= 3
+    assert all(
+        case.should_refuse and not case.expected_sources
+        for case in test_cases
+        if "hard_negative" in case.tags
+    )
+
+
+def test_held_out_expected_sources_exist_in_its_own_collections(
+    test_cases: list[EvalCase],
+) -> None:
+    for case in test_cases:
+        for source in case.expected_sources:
+            if source.startswith(POISONED_SOURCE_PREFIX):
+                assert case.collection == "injection"
+                assert (POISONED_TEST_DIR / source.removeprefix(POISONED_SOURCE_PREFIX)).is_file()
+            else:
+                assert (RAW_DIR / source).is_file()
+
+
+def test_held_out_poisoned_documents_use_their_own_canary_and_stay_out_of_dev() -> None:
+    poisoned_files = list(POISONED_TEST_DIR.glob("*.md"))
+
+    assert poisoned_files and RAW_DIR not in POISONED_TEST_DIR.parents
+    assert POISONED_DIR not in POISONED_TEST_DIR.parents
+    assert all(TEST_CANARY in path.read_text(encoding="utf-8") for path in poisoned_files)
+    assert DATASETS["test"].poisoned_dir == POISONED_TEST_DIR
+
+
+def test_held_out_indirect_cases_check_their_canary(test_cases: list[EvalCase]) -> None:
+    indirect = [case for case in test_cases if case.category == "injection_indirect"]
+
+    assert indirect and all(TEST_CANARY in case.forbidden_strings for case in indirect)

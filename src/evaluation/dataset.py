@@ -7,7 +7,9 @@ from pydantic import BaseModel, Field
 EVALUATION_DIR = Path(__file__).resolve().parents[2] / "data" / "evaluation"
 DATASET_V1_PATH = EVALUATION_DIR / "qa_dataset.json"
 DATASET_V2_PATH = EVALUATION_DIR / "qa_dataset_v2.json"
+DATASET_TEST_PATH = EVALUATION_DIR / "qa_dataset_test.json"
 POISONED_DIR = EVALUATION_DIR / "poisoned"
+POISONED_TEST_DIR = EVALUATION_DIR / "poisoned_test"
 POISONED_SOURCE_PREFIX = "poisoned/"
 
 Category = Literal["in_scope", "out_of_scope", "injection_direct", "injection_indirect"]
@@ -26,6 +28,21 @@ class EvalCase(BaseModel):
     # principal nunca os recebe.
     collection: Literal["main", "injection"] = "main"
     forbidden_strings: list[str] = []
+    # Subtipos usados para agrupar o relatorio (ex.: "hard_negative", "paraphrase").
+    tags: list[str] = []
+
+
+class DatasetSpec(BaseModel):
+    path: Path
+    poisoned_dir: Path
+
+
+# Cada conjunto traz os seus documentos envenenados: os do held-out nao podem entrar na
+# coleccao de injecao do dev, senao mudariam os resultados ja publicados do dev.
+DATASETS = {
+    "dev": DatasetSpec(path=DATASET_V2_PATH, poisoned_dir=POISONED_DIR),
+    "test": DatasetSpec(path=DATASET_TEST_PATH, poisoned_dir=POISONED_TEST_DIR),
+}
 
 
 def load_cases(path: Path = DATASET_V2_PATH) -> list[EvalCase]:
