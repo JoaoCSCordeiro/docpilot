@@ -4,7 +4,7 @@ from groq import BadRequestError
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from src.agent.graph import build_context
-from src.agent.llm import GuardedGroqLLM, get_llm
+from src.agent.llm import GROQ, GuardedLLM, get_llm
 from src.config import settings
 from src.retrieval.retriever import RetrievedChunk
 
@@ -95,11 +95,13 @@ def judge_response_format() -> dict:
     }
 
 
-def get_judge_llm() -> GuardedGroqLLM:
+def get_judge_llm() -> GuardedLLM:
     model_kwargs: dict = {"response_format": judge_response_format()}
     if settings.judge_reasoning_effort:
         model_kwargs["reasoning_effort"] = settings.judge_reasoning_effort
+    # O juiz e o modelo Groq calibrado no Bloco 18, qualquer que seja o LLM_PROVIDER.
     return get_llm(
+        provider=GROQ,
         model=settings.judge_model,
         max_tokens=settings.judge_max_tokens,
         model_kwargs=model_kwargs,

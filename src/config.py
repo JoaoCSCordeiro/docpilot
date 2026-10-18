@@ -30,6 +30,9 @@ class Settings:
     # erradas a 0.5 com o setup antigo, 4 aqui); escolhido sobre o mesmo dataset que mede.
     confidence_threshold: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.1"))
 
+    # groq | azure_openai. O juiz da avaliacao fica sempre na Groq (ver judge.py).
+    llm_provider: str = os.getenv("LLM_PROVIDER", "groq")
+
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     groq_max_calls_per_minute: int = int(os.getenv("GROQ_MAX_CALLS_PER_MINUTE", "20"))
@@ -39,6 +42,17 @@ class Settings:
     # Usado so para estimar custo no tracing: no free tier o custo real e zero.
     groq_price_input_per_million: float = float(os.getenv("GROQ_PRICE_INPUT_PER_MILLION", "0.15"))
     groq_price_output_per_million: float = float(os.getenv("GROQ_PRICE_OUTPUT_PER_MILLION", "0.60"))
+
+    # Azure OpenAI (Bloco 21). O deployment tem o nome que lhe foi dado no Terraform; a
+    # api_version e a GA usada pelo langchain-openai 0.3.
+    azure_openai_endpoint: str = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    azure_openai_api_key: str = os.getenv("AZURE_OPENAI_API_KEY", "")
+    azure_openai_deployment: str = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1-mini")
+    azure_openai_api_version: str = os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
+    azure_openai_max_calls_per_minute: int = int(
+        os.getenv("AZURE_OPENAI_MAX_CALLS_PER_MINUTE", "10")
+    )
+    azure_openai_max_tokens: int = int(os.getenv("AZURE_OPENAI_MAX_TOKENS", "1024"))
 
     # Juiz LLM da avaliacao (Bloco 18). Modelo diferente do gerador, mas da mesma familia:
     # o qwen/qwen3.8-27b (outro fornecedor, preferivel contra o self-preference bias) teve

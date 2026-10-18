@@ -16,7 +16,7 @@ projects in the same portfolio (README files), which keeps the demo
 self-contained and avoids depending on external or licensed data.
 
 The project targets three technical areas: cloud infrastructure as code
-(Terraform, AWS, Kubernetes), retrieval-augmented generation with a real
+(Terraform, AWS, Azure, Kubernetes), retrieval-augmented generation with a real
 vector database (not a thin wrapper over an API), and agent orchestration
 with LangGraph.
 
@@ -389,6 +389,21 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   API. Not applied to a live AWS account by default. Applying it creates
   real, billed resources; read the cost warning and the `apply`/`destroy`
   steps in `infra/terraform/README.md` before running `terraform apply`.
+- Azure (`infra/terraform-azure`, `docs/azure-architecture.md`): Container
+  Apps (API with Qdrant as a sidecar that the replica re-indexes at
+  start-up), Container Registry pulled with a user-assigned managed identity,
+  Key Vault references for the secrets, Cosmos DB for MongoDB (free tier) for
+  the query log, Log Analytics, an optional Azure OpenAI deployment and a
+  budget. Applied once on 2026-10-18 on an Azure for Students subscription,
+  verified end to end (4/4 smoke-test cases over the public URL, query log in
+  Cosmos DB, console logs in Log Analytics) and destroyed; the public URL was
+  live for about 9 minutes. Evidence, timeline and the problems found during
+  the deploy: `docs/azure-deployment-evidence.md`. The LLM provider can be
+  switched to Azure OpenAI (`LLM_PROVIDER=azure_openai`); it was unit-tested
+  with mocks and exercised with two live calls to a `gpt-4.1-mini`
+  deployment, while the deployed API kept Groq. An Azure Function
+  (`functions/`, blob trigger that re-indexes an uploaded document) runs
+  locally with Azure Functions Core Tools and Azurite; it is not deployed.
 - Kubernetes (`infra/k8s`): a Deployment and a Service for running the same
   API image, as an alternative orchestration demo to ECS. Validated for
   syntax under minikube, and applied against a real k3s cluster running in
@@ -402,6 +417,9 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   fake LLM instead of live dependencies. A second job, `retrieval-gate`,
   starts Qdrant as a service container, indexes the corpus, and fails if any
   retrieval metric drops more than 0.03 below `data/evaluation/baseline.json`.
+  A third job runs `terraform fmt -check` and `terraform validate` on both
+  Terraform modules, and `tflint` with the `azurerm` ruleset on the Azure
+  one; CI never runs `plan` or `apply`.
   The LLM evaluation with the judge runs in a separate workflow
   (`llm-eval.yml`), only on manual dispatch, and skips cleanly when the
   `GROQ_API_KEY` repository secret is not set.
@@ -452,6 +470,15 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   come from one cached sample.
 - The Terraform module does not provision Qdrant or MongoDB in AWS, only the
   API compute layer; a full cloud deployment would need to extend it.
+- The Azure deployment is a single replica with an ephemeral Qdrant sidecar
+  that re-indexes at start-up, which only suits a small corpus; scaling out
+  would need a shared vector store and the Redis backends (Azure Cache for
+  Redis was left out on cost). It was run for a demonstration, not kept
+  online. On the student subscription, Azure OpenAI was capped at 1,000
+  tokens per minute regardless of the deployment capacity, so the live
+  provider test used 3 retrieved chunks instead of 5. Cosmos DB for MongoDB
+  indexes only `_id` by default, so the query-log read helpers that sort by
+  `created_at` would need an index there.
 - The Kubernetes manifests were validated for syntax under minikube. They
   have since been applied to a real k3s cluster (see `docs/k3s-setup.md`),
   but Qdrant and MongoDB still run on the host via Docker Compose, not

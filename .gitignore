@@ -15,3 +15,9 @@ data/cache/
 CLAUDE.md
 docs/plano-blocos.md
 APRENDIZAGEM.md
+# Terraform Azure: valores reais (subscricao, chaves, email)
+infra/terraform-azure/terraform.tfvars
+
+# Azure Functions: configuracao local (pode conter connection strings)
+functions/local.settings.json
+*.tfplan

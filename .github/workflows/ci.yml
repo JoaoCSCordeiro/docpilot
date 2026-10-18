@@ -83,3 +83,46 @@ jobs:
 
       - name: Retrieval gate
         run: python scripts/check_retrieval_gate.py
+
+  terraform:
+    # So validacao estatica: o CI nao tem credenciais de cloud e nunca corre plan/apply.
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        module: [infra/terraform, infra/terraform-azure]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
+      - name: Init (no backend)
+        run: terraform -chdir=${{ matrix.module }} init -backend=false -input=false
+
+      - name: Format check
+        run: terraform -chdir=${{ matrix.module }} fmt -check -recursive
+
+      - name: Validate
+        run: terraform -chdir=${{ matrix.module }} validate
+
+      - name: Set up TFLint
+        if: matrix.module == 'infra/terraform-azure'
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.64.0
+
+      - name: TFLint
+        if: matrix.module == 'infra/terraform-azure'
+        working-directory: ${{ matrix.module }}
+        run: |
+          tflint --init
+          tflint --format compact
+        env:
+          # O tflint --init descarrega o plugin azurerm do GitHub; com token evita o
+          # rate limit da API para pedidos anonimos.
+          GITHUB_TOKEN: ${{ github.token }}

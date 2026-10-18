@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "QDRANT_HOST": "localhost",
+    "QDRANT_PORT": "6333",
+    "QDRANT_COLLECTION_NAME": "docpilot_v2_azure_demo"
+  }
+}

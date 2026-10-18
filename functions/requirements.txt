@@ -1,0 +1,3 @@
+# A function corre sobre o mesmo ambiente da API (src/ e as dependencias da raiz).
+-r ../requirements.txt
+azure-functions>=1.25,<2.0

@@ -71,8 +71,8 @@ class RecordingLLM:
         return self._llm.model_name
 
     @property
-    def groq_call_count(self) -> int:
-        return self._llm.groq_call_count
+    def call_count(self) -> int:
+        return self._llm.call_count
 
     def invoke(self, prompt: str) -> LLMResponse:
         response = self._llm.invoke(prompt)
@@ -213,7 +213,7 @@ def run_judge(records: list[dict], cases_by_id: dict[int, EvalCase], states: dic
                 LABEL_SCORES[label],
                 comment=f"{label} (judge {settings.judge_model}, rubric {JUDGE_PROMPT_VERSION})",
             )
-    return judge_llm.groq_call_count
+    return judge_llm.call_count
 
 
 def summarize(records: list[dict]) -> dict:
@@ -572,7 +572,7 @@ def main() -> None:
             "top_k": settings.retrieval_top_k,
             "embedding_model": settings.embedding_model_name,
             "reranker_model": settings.reranker_model_name,
-            "groq_calls": {"generation": llm.groq_call_count, "judge": judge_calls},
+            "groq_calls": {"generation": llm.call_count, "judge": judge_calls},
             "llm_cache_backend": settings.llm_cache_backend,
         },
         "generator_calls": llm_call_stats(llm.responses),

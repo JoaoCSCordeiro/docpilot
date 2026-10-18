@@ -3,6 +3,10 @@ import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
+    FieldCondition,
+    Filter,
+    FilterSelector,
+    MatchValue,
     Modifier,
     PointStruct,
     SparseVector,
@@ -62,6 +66,17 @@ def index_chunks(
         for chunk, dense, sparse in zip(chunks, dense_embeddings, sparse_embeddings)
     ]
     client.upsert(collection_name=collection_name, points=points)
+
+
+def delete_chunks_by_source(client: QdrantClient, collection_name: str, source: str) -> None:
+    # Os IDs sao uuid5(source:position): reindexar um documento que encolheu sobrescreve
+    # as primeiras posicoes mas deixava as antigas do fim no indice.
+    client.delete(
+        collection_name,
+        points_selector=FilterSelector(
+            filter=Filter(must=[FieldCondition(key="source", match=MatchValue(value=source))])
+        ),
+    )
 
 
 def count_chunks_by_source(

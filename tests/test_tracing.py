@@ -10,7 +10,7 @@ from qdrant_client import QdrantClient
 
 from src.agent import llm as llm_module
 from src.agent.graph import REFUSAL_MESSAGE, build_graph, run_agent
-from src.agent.llm import GuardedGroqLLM, estimate_groq_cost
+from src.agent.llm import GuardedLLM, estimate_groq_cost
 from src.agent.rate_limiter import TokenBucket
 from src.config import settings
 from src.ingestion.chunking_fixed import Chunk
@@ -88,8 +88,8 @@ def _finished_spans(span_exporter: InMemorySpanExporter) -> dict:
     return {span.name: span for span in span_exporter.get_finished_spans()}
 
 
-def _guarded_llm(chat: FakeChatGroq) -> GuardedGroqLLM:
-    return GuardedGroqLLM(chat, TokenBucket(capacity=10, refill_period_seconds=60.0))
+def _guarded_llm(chat: FakeChatGroq) -> GuardedLLM:
+    return GuardedLLM(chat, TokenBucket(capacity=10, refill_period_seconds=60.0), chat.model_name)
 
 
 def test_tracing_is_a_no_op_without_langfuse_keys(monkeypatch: pytest.MonkeyPatch) -> None:

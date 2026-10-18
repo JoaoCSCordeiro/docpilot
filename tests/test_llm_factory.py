@@ -20,8 +20,8 @@ def test_get_llm_accepts_another_model_and_extra_request_options() -> None:
     llm = get_llm(model="qwen/qwen3.8-27b", max_tokens=256, model_kwargs={"seed": 1})
 
     assert llm.model_name == "qwen/qwen3.8-27b"
-    assert llm._chat_groq.max_tokens == 256
-    assert llm._chat_groq.model_kwargs == {"seed": 1}
+    assert llm._chat_model.max_tokens == 256
+    assert llm._chat_model.model_kwargs == {"seed": 1}
 
 
 def test_generator_and_judge_share_one_rate_limiter_per_process() -> None:
@@ -31,7 +31,7 @@ def test_generator_and_judge_share_one_rate_limiter_per_process() -> None:
     assert generator._rate_limiter is judge._rate_limiter is get_shared_rate_limiter()
 
 
-def test_groq_call_count_ignores_cache_hits(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_call_count_ignores_cache_hits(monkeypatch: pytest.MonkeyPatch) -> None:
     store: dict = {}
     monkeypatch.setattr(
         llm_module, "get_cached_response", lambda model, prompt: store.get((model, prompt))
@@ -44,12 +44,12 @@ def test_groq_call_count_ignores_cache_hits(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(llm_module, "log_usage", lambda **kwargs: None)
     llm = get_llm()
     fake_message = type("FakeMessage", (), {"content": "ok", "usage_metadata": {}})()
-    monkeypatch.setattr(type(llm._chat_groq), "invoke", lambda self, prompt: fake_message)
+    monkeypatch.setattr(type(llm._chat_model), "invoke", lambda self, prompt: fake_message)
 
     llm.invoke("prompt")
     llm.invoke("prompt")
 
-    assert llm.groq_call_count == 1
+    assert llm.call_count == 1
 
 
 def test_responses_report_tokens_on_a_miss_and_zero_tokens_on_a_hit(
@@ -71,7 +71,7 @@ def test_responses_report_tokens_on_a_miss_and_zero_tokens_on_a_hit(
         (),
         {"content": "ok", "usage_metadata": {"input_tokens": 120, "output_tokens": 30}},
     )()
-    monkeypatch.setattr(type(llm._chat_groq), "invoke", lambda self, prompt: fake_message)
+    monkeypatch.setattr(type(llm._chat_model), "invoke", lambda self, prompt: fake_message)
 
     miss = llm.invoke("prompt")
     hit = llm.invoke("prompt")
@@ -83,7 +83,7 @@ def test_responses_report_tokens_on_a_miss_and_zero_tokens_on_a_hit(
 
 @pytest.fixture
 def fresh_shared_rate_limiter(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(llm_module, "_shared_rate_limiter", None)
+    monkeypatch.setattr(llm_module, "_shared_rate_limiters", {})
 
 
 @pytest.mark.usefixtures("fresh_shared_rate_limiter")

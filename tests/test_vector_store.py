@@ -8,6 +8,7 @@ from src.retrieval.vector_store import (
     SPARSE_VECTOR_NAME,
     chunk_point_id,
     count_chunks_by_source,
+    delete_chunks_by_source,
     ensure_collection,
     index_chunks,
 )
@@ -124,3 +125,20 @@ def test_ensure_collection_creates_named_dense_and_idf_sparse_vectors(
 
     assert params.vectors[DENSE_VECTOR_NAME].size == VECTOR_SIZE
     assert params.sparse_vectors[SPARSE_VECTOR_NAME].modifier == "idf"
+
+
+def test_delete_chunks_by_source_removes_only_that_document(client: QdrantClient) -> None:
+    chunks = [Chunk(source="old.md", position=i, text=f"old{i}") for i in range(3)]
+    chunks.append(Chunk(source="other.md", position=0, text="other"))
+    ensure_collection(client, COLLECTION_NAME, VECTOR_SIZE)
+    index_chunks(
+        client,
+        COLLECTION_NAME,
+        chunks,
+        [[1.0, 0.0, 0.0, 0.0]] * len(chunks),
+        sparse_stubs(len(chunks)),
+    )
+
+    delete_chunks_by_source(client, COLLECTION_NAME, "old.md")
+
+    assert count_chunks_by_source(client, COLLECTION_NAME) == {"other.md": 1}

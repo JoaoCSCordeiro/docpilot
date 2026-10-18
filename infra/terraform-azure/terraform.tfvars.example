@@ -1,0 +1,9 @@
+# Copiar para terraform.tfvars (no .gitignore). Nunca commitar valores reais.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+groq_api_key    = "gsk_..."
+alert_email     = "you@example.com"
+
+# Vazio no primeiro apply (cria o ACR); depois do push da imagem, a tag publicada.
+api_image_tag = ""
+
+enable_azure_openai = false
