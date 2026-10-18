@@ -15,7 +15,7 @@ from src.agent.graph import (  # noqa: E402
     build_graph,
     run_agent,
 )
-from src.agent.llm import get_llm  # noqa: E402
+from src.agent.llm import LLMResponse, get_llm  # noqa: E402
 from src.agent.llm_cache import get_cached_response  # noqa: E402
 from src.config import settings  # noqa: E402
 from src.evaluation.checks import citation_check, is_abstention, leaked_strings  # noqa: E402
@@ -34,7 +34,7 @@ from src.evaluation.judge import (  # noqa: E402
     get_judge_llm,
     judge_answer,
 )
-from src.evaluation.metrics import mean, refusal_metrics  # noqa: E402
+from src.evaluation.metrics import mean, percentile, refusal_metrics  # noqa: E402
 from src.evaluation.retrieval_eval import (  # noqa: E402
     REFUSAL_CATEGORIES,
     retrieval_row,
@@ -53,6 +53,44 @@ RAW_DIR = REPO_ROOT / "data" / "raw"
 OUTPUT_DIR = REPO_ROOT / "docs" / "evaluation"
 INJECTION_COLLECTION_SUFFIX = "_eval_injection"
 SWEEP_THRESHOLDS = [round(0.05 * step, 2) for step in range(1, 20)]
+
+
+class RecordingLLM:
+    # Guarda cada resposta do gerador para medir latencia e tokens por chamada no
+    # relatorio, sem acumular estado no LLM de producao (a API corre indefinidamente).
+    def __init__(self, llm) -> None:
+        self._llm = llm
+        self.responses: list[LLMResponse] = []
+
+    @property
+    def model_name(self) -> str:
+        return self._llm.model_name
+
+    @property
+    def groq_call_count(self) -> int:
+        return self._llm.groq_call_count
+
+    def invoke(self, prompt: str) -> LLMResponse:
+        response = self._llm.invoke(prompt)
+        self.responses.append(response)
+        return response
+
+
+def llm_call_stats(responses: list[LLMResponse]) -> dict:
+    def stats(group: list[LLMResponse]) -> dict:
+        latencies_ms = [response.latency_seconds * 1000 for response in group]
+        return {
+            "n": len(group),
+            "latency_p50_ms": percentile(latencies_ms, 0.5),
+            "latency_p95_ms": percentile(latencies_ms, 0.95),
+            "input_tokens_mean": mean(response.input_tokens for response in group),
+            "output_tokens_mean": mean(response.output_tokens for response in group),
+        }
+
+    return {
+        "cache_miss": stats([response for response in responses if not response.cache_hit]),
+        "cache_hit": stats([response for response in responses if response.cache_hit]),
+    }
 
 
 def git_commit() -> str:
@@ -274,6 +312,26 @@ def render_report(results: dict) -> str:
             f"{fmt(stats['precision_at_k'])} | {fmt(stats['reciprocal_rank'])} |"
         )
 
+    calls = results.get("generator_calls")
+    if calls:
+        lines += [
+            "",
+            f"## Generator calls (LLM cache backend: {run['llm_cache_backend']})",
+            "",
+            "Latency of the cache lookup on a hit; of the Groq call alone on a miss "
+            "(rate limiter wait excluded). Tokens as reported by Groq; zero on a hit.",
+            "",
+            "| Call | N | Latency p50 (ms) | Latency p95 (ms) | Input tokens (mean) "
+            "| Output tokens (mean) |",
+            "|---|---|---|---|---|---|",
+        ]
+        for name, stats in calls.items():
+            lines.append(
+                f"| {name} | {stats['n']} | {fmt(stats['latency_p50_ms'])} | "
+                f"{fmt(stats['latency_p95_ms'])} | {fmt(stats['input_tokens_mean'])} | "
+                f"{fmt(stats['output_tokens_mean'])} |"
+            )
+
     lines += [
         "",
         "## Decisions by category",
@@ -424,7 +482,7 @@ def main() -> None:
     if args.dry_run:
         return
 
-    llm = get_llm()
+    llm = RecordingLLM(get_llm())
     graphs = {
         name: build_graph(client, llm, collection_name=collection)
         for name, collection in collections.items()
@@ -460,7 +518,9 @@ def main() -> None:
             "embedding_model": settings.embedding_model_name,
             "reranker_model": settings.reranker_model_name,
             "groq_calls": {"generation": llm.groq_call_count, "judge": judge_calls},
+            "llm_cache_backend": settings.llm_cache_backend,
         },
+        "generator_calls": llm_call_stats(llm.responses),
         "retrieval": summarize_retrieval(retrieval_rows),
         "summary": summarize(records),
         "threshold_sweep": threshold_sweep(retrieval_rows, SWEEP_THRESHOLDS),

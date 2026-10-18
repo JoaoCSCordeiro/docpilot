@@ -57,8 +57,11 @@ Components:
   retrieve, rerank, assess confidence, and generate answer or refuse. The
   confidence guardrail is a separate, testable function, not left to the
   LLM's judgment. Groq (`langchain-groq`) is used for generation, guarded by
-  a token bucket rate limiter, a local SQLite response cache, and a
-  conservative `max_tokens` limit.
+  a token bucket rate limiter, a response cache, and a conservative
+  `max_tokens` limit. The cache and the limiter run either in-process
+  (SQLite and memory) or in Redis, shared by every API instance, with a
+  fallback to the local versions when Redis is unreachable
+  (`docs/redis.md`).
 - API (`src/api`): a FastAPI application exposes the agent over HTTP
   (`POST /query`), with request/response validation via Pydantic.
   Every query is persisted as a trace document in MongoDB (`src/agent/query_log.py`),
@@ -89,7 +92,9 @@ docker compose up -d --build
 docker compose exec api python scripts/index_documents.py
 ```
 
-The API is then available at `http://localhost:8000/docs`.
+The API is then available at `http://localhost:8000/docs`, with a
+liveness endpoint at `http://localhost:8000/health`. In Compose, the LLM
+cache and the Groq rate limiter use the bundled Redis.
 
 ### Local (without Docker)
 
@@ -326,10 +331,19 @@ HTML sponsor badge block with no sentence punctuation becomes a single
 ## Infrastructure
 
 - Docker Compose (`docker-compose.yml`, `Dockerfile`): runs the API, Qdrant,
-  and MongoDB together with a single command. The API image installs a
-  CPU-only PyTorch build explicitly, since the project never uses a GPU;
-  this keeps the image at about 2.15 GB instead of 8.69 GB. See
-  `docs/local-setup.md`.
+  MongoDB and Redis together with a single command. Every service has a
+  healthcheck and `restart: unless-stopped`, the API starts only after its
+  dependencies are healthy, and the API container runs as a non-root user.
+  The API image installs a CPU-only PyTorch build explicitly, since the
+  project never uses a GPU; this keeps the image at about 2.15 GB instead
+  of 8.69 GB. See `docs/local-setup.md`.
+- Redis (`docs/redis.md`): shared LLM response cache with a TTL and a
+  distributed token bucket for Groq (an atomic Lua script on the Redis
+  clock). Verified on 2026-10-18 with two API instances (the second answered
+  from the cache without calling Groq) and with 2 and 4 processes sharing one
+  bucket (exactly the capacity granted). Repeating the 58-case evaluation
+  from the cache made 0 Groq calls instead of 47; a cache hit took 0.93 ms
+  (p50) against 756 ms (p50) for the Groq call.
 - Observability (`docker-compose.observability.yml`): local Langfuse
   (web, worker, Postgres, ClickHouse, Redis, MinIO), separate from the main
   stack, without a restart policy, and with only the web UI (and MinIO, for
@@ -380,9 +394,15 @@ HTML sponsor badge block with no sentence punctuation becomes a single
 - The answer-language rule is unreliable: 10 of 18 answered English
   questions got a Portuguese answer with prompt v3 (manual count; the
   evaluation has no automated language check).
-- The Docker Compose setup runs the API container as root, without restart
-  policies or healthchecks, and is meant for local demonstration, not
-  production.
+- The Docker Compose setup is meant for local demonstration, not
+  production: no TLS, no authentication on the API or on the MCP HTTP
+  transport (which binds to `127.0.0.1` by default), and secrets in `.env`.
+- When Redis is down, each API instance falls back to its own in-memory
+  rate limit, so several instances together can exceed the Groq limit, and
+  each request pays up to about 1.5 s of Redis timeouts (no circuit breaker).
+- The generator is not deterministic at temperature 0: two runs of the same
+  47 prompts gave identical answers in only 16 cases. Evaluation numbers
+  come from one cached sample.
 - The Terraform module does not provision Qdrant or MongoDB in AWS, only the
   API compute layer; a full cloud deployment would need to extend it.
 - The Kubernetes manifests were validated for syntax under minikube. They

@@ -6,6 +6,18 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+    # A imagem nao traz curl nem wget: o pedido HTTP ao /readyz vai pelo /dev/tcp do bash.
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - 'exec 3<>/dev/tcp/127.0.0.1/6333 && printf "GET /readyz HTTP/1.0\r\n\r\n" >&3 && grep -q "200 OK" <&3'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   mongo:
     image: mongo:7.0
@@ -13,6 +25,32 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Cache LLM e rate limiter partilhados pelas replicas da API (Bloco 20). O Redis do
+  # Langfuse (docker-compose.observability.yml) nao publica porta no host, por isso nao
+  # ha colisao em 6379.
+  redis:
+    image: redis:7-alpine
+    # LRU sobre todas as chaves: e uma cache. A chave do rate limiter e lida a cada
+    # chamada a Groq, por isso e das ultimas a ser despejada.
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build: .
@@ -34,10 +72,20 @@ services:
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
       GROQ_MAX_CALLS_PER_MINUTE: ${GROQ_MAX_CALLS_PER_MINUTE:-20}
       GROQ_MAX_TOKENS: ${GROQ_MAX_TOKENS:-1024}
+      REDIS_URL: redis://redis:6379/0
+      LLM_CACHE_BACKEND: ${LLM_CACHE_BACKEND:-redis}
+      LLM_CACHE_TTL_SECONDS: ${LLM_CACHE_TTL_SECONDS:-604800}
+      RATE_LIMITER_BACKEND: ${RATE_LIMITER_BACKEND:-redis}
+    restart: unless-stopped
     depends_on:
-      - qdrant
-      - mongo
+      qdrant:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   qdrant_storage:
   mongo_data:
+  redis_data:

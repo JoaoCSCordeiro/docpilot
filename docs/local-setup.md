@@ -17,7 +17,7 @@
    cp .env.example .env
    ```
 
-2. Subir os três serviços (Qdrant, MongoDB, API):
+2. Subir os quatro serviços (Qdrant, MongoDB, Redis, API):
 
    ```
    docker compose up -d --build
@@ -62,8 +62,9 @@
 docker compose down
 ```
 
-Os dados do Qdrant e do MongoDB ficam em volumes nomeados
-(`qdrant_storage`, `mongo_data`) e sobrevivem a `docker compose down`.
+Os dados do Qdrant, do MongoDB e do Redis ficam em volumes nomeados
+(`qdrant_storage`, `mongo_data`, `redis_data`) e sobrevivem a
+`docker compose down`.
 Para os apagar também:
 
 ```
@@ -72,6 +73,14 @@ docker compose down -v
 
 ## Notas
 
+- Todos os serviços têm `healthcheck` e `restart: unless-stopped`; a API só
+  arranca depois de Qdrant, MongoDB e Redis estarem `healthy`
+  (`docker compose ps` mostra o estado). A API corre como utilizador
+  `docpilot` (uid 1000), não como root, e expõe `GET /health`.
+- No Compose, a cache de respostas LLM e o rate limiter da Groq usam o Redis
+  (`LLM_CACHE_BACKEND=redis`, `RATE_LIMITER_BACKEND=redis`), para várias
+  instâncias da API os partilharem. Fora do Docker, o `.env.example` mantém
+  SQLite e o limite em memória; ver `docs/redis.md`.
 - O serviço `api` liga-se ao Qdrant e ao MongoDB pelos nomes dos
   serviços na rede interna do Compose (`qdrant`, `mongo`), não por
   `localhost`. Só faz sentido usar `localhost` quando corres a API

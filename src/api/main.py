@@ -24,6 +24,13 @@ def get_query_log_collection():
     return get_query_traces_collection(get_mongo_client())
 
 
+# Liveness: so diz que o processo responde. Qdrant, MongoDB e Redis tem os seus proprios
+# healthchecks no compose; se este endpoint os testasse, uma falha do Mongo reiniciava a API.
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.post("/query", response_model=QueryResponse)
 def query(
     request: QueryRequest,

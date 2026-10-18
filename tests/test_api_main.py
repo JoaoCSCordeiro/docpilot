@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_graph, get_query_log_collection
+from src.config import settings
 from src.retrieval.retriever import RetrievedChunk
 
 
@@ -92,6 +93,21 @@ def test_query_endpoint_rejects_empty_question(client: TestClient) -> None:
     response = client.post("/query", json={"question": ""})
 
     assert response.status_code == 422
+
+
+def test_query_endpoint_rejects_question_longer_than_the_limit(client: TestClient) -> None:
+    _override_graph({"answer": "", "is_confident": False, "confidence": 0.0})
+
+    response = client.post("/query", json={"question": "a" * (settings.max_question_length + 1)})
+
+    assert response.status_code == 422
+
+
+def test_health_endpoint_does_not_depend_on_the_graph(client: TestClient) -> None:
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
 
 
 def test_docs_endpoint_is_available(client: TestClient) -> None:

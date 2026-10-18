@@ -50,6 +50,17 @@ class Settings:
     # Vazio = parametro omitido (raciocinio por omissao do modelo).
     judge_reasoning_effort: str = os.getenv("JUDGE_REASONING_EFFORT", "")
 
+    # Redis partilhado entre replicas (Bloco 20). Com "sqlite" e "memory" o comportamento e
+    # o de antes; com "redis" e o Redis em baixo, cai-se nesses mesmos backends.
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    llm_cache_backend: str = os.getenv("LLM_CACHE_BACKEND", "sqlite")
+    # 0 = sem expiracao. As respostas sao deterministicas (temperature 0) mas o modelo da
+    # Groq pode mudar por baixo do mesmo nome; 7 dias limita o tempo de uma resposta velha.
+    llm_cache_ttl_seconds: int = int(os.getenv("LLM_CACHE_TTL_SECONDS", "604800"))
+    rate_limiter_backend: str = os.getenv("RATE_LIMITER_BACKEND", "memory")
+
+    max_question_length: int = int(os.getenv("MAX_QUESTION_LENGTH", "2000"))
+
     langfuse_public_key: str = os.getenv("LANGFUSE_PUBLIC_KEY", "")
     langfuse_secret_key: str = os.getenv("LANGFUSE_SECRET_KEY", "")
     langfuse_base_url: str = os.getenv("LANGFUSE_BASE_URL", "http://localhost:3000")

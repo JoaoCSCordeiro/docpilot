@@ -23,7 +23,7 @@ from src.retrieval.retriever import RetrievedChunk, retrieve
 from src.retrieval.vector_store import count_chunks_by_source
 
 MAX_TOP_K = 20
-MAX_QUESTION_LENGTH = 2000
+MAX_QUESTION_LENGTH = settings.max_question_length
 
 logger = logging.getLogger(__name__)
 

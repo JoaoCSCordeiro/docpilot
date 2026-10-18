@@ -3,6 +3,7 @@ import pytest
 from src.evaluation.metrics import (
     mean,
     mean_by_group,
+    percentile,
     precision_at_k,
     recall_at_k,
     reciprocal_rank,
@@ -97,3 +98,20 @@ def test_refusal_precision_is_undefined_when_nothing_is_refused() -> None:
 
     assert metrics["precision"] is None
     assert metrics["recall"] == 0.0
+
+
+def test_percentile_uses_nearest_rank() -> None:
+    values = [5.0, 1.0, 3.0, 2.0, 4.0]
+
+    assert percentile(values, 0.5) == 3.0
+    assert percentile(values, 0.95) == 5.0
+    assert percentile(values, 0.2) == 1.0
+
+
+def test_percentile_of_empty_values_is_none() -> None:
+    assert percentile([], 0.5) is None
+
+
+def test_percentile_rejects_fraction_outside_range() -> None:
+    with pytest.raises(ValueError):
+        percentile([1.0], 0.0)

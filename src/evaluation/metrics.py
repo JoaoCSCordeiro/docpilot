@@ -1,3 +1,4 @@
+import math
 from collections import defaultdict
 from typing import Iterable
 
@@ -31,6 +32,17 @@ def reciprocal_rank(retrieved_sources: list[str], expected_sources: list[str]) -
 def mean(values: Iterable[float]) -> float | None:
     values = list(values)
     return sum(values) / len(values) if values else None
+
+
+def percentile(values: Iterable[float], fraction: float) -> float | None:
+    # Nearest-rank: devolve sempre um valor observado, o que com N pequeno (dezenas de
+    # chamadas) e mais honesto do que interpolar entre duas amostras.
+    if not 0 < fraction <= 1:
+        raise ValueError("fraction deve estar em ]0, 1]")
+    ordered = sorted(values)
+    if not ordered:
+        return None
+    return ordered[math.ceil(fraction * len(ordered)) - 1]
 
 
 def mean_by_group(rows: list[dict], group_key: str, value_key: str) -> dict[str, dict]:

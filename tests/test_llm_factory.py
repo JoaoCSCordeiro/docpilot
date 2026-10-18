@@ -1,7 +1,9 @@
+import fakeredis
 import pytest
 
 from src.agent import llm as llm_module
 from src.agent.llm import get_llm, get_shared_rate_limiter
+from src.agent.rate_limiter import RedisTokenBucket, TokenBucket
 from src.config import settings
 
 
@@ -48,3 +50,66 @@ def test_groq_call_count_ignores_cache_hits(monkeypatch: pytest.MonkeyPatch) -> 
     llm.invoke("prompt")
 
     assert llm.groq_call_count == 1
+
+
+def test_responses_report_tokens_on_a_miss_and_zero_tokens_on_a_hit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store: dict = {}
+    monkeypatch.setattr(
+        llm_module, "get_cached_response", lambda model, prompt: store.get((model, prompt))
+    )
+    monkeypatch.setattr(
+        llm_module,
+        "store_response",
+        lambda model, prompt, response: store.__setitem__((model, prompt), response),
+    )
+    monkeypatch.setattr(llm_module, "log_usage", lambda **kwargs: None)
+    llm = get_llm()
+    fake_message = type(
+        "FakeMessage",
+        (),
+        {"content": "ok", "usage_metadata": {"input_tokens": 120, "output_tokens": 30}},
+    )()
+    monkeypatch.setattr(type(llm._chat_groq), "invoke", lambda self, prompt: fake_message)
+
+    miss = llm.invoke("prompt")
+    hit = llm.invoke("prompt")
+
+    assert (miss.cache_hit, miss.input_tokens, miss.output_tokens) == (False, 120, 30)
+    assert (hit.cache_hit, hit.input_tokens, hit.output_tokens) == (True, 0, 0)
+    assert miss.latency_seconds >= 0.0 and hit.latency_seconds >= 0.0
+
+
+@pytest.fixture
+def fresh_shared_rate_limiter(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(llm_module, "_shared_rate_limiter", None)
+
+
+@pytest.mark.usefixtures("fresh_shared_rate_limiter")
+def test_shared_rate_limiter_defaults_to_the_in_memory_bucket(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rate_limiter_backend", "memory")
+
+    assert isinstance(get_shared_rate_limiter(), TokenBucket)
+
+
+@pytest.mark.usefixtures("fresh_shared_rate_limiter")
+def test_shared_rate_limiter_uses_redis_when_configured_and_reachable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rate_limiter_backend", "redis")
+    monkeypatch.setattr(llm_module, "get_redis_client", lambda: fakeredis.FakeRedis())
+
+    assert isinstance(get_shared_rate_limiter(), RedisTokenBucket)
+
+
+@pytest.mark.usefixtures("fresh_shared_rate_limiter")
+def test_shared_rate_limiter_falls_back_to_memory_when_redis_is_unreachable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rate_limiter_backend", "redis")
+    monkeypatch.setattr(llm_module, "get_redis_client", lambda: None)
+
+    assert isinstance(get_shared_rate_limiter(), TokenBucket)
