@@ -143,7 +143,10 @@ Other scripts:
   (`data/evaluation/qa_dataset_v2.json`) through the full agent, applies the
   deterministic checks and the LLM judge, and writes a report to
   `docs/evaluation/`. `--dry-run` prints the number of Groq calls it would
-  make without calling the LLM.
+  make without calling the LLM; `--dataset test` runs the 30-case held-out
+  set (`data/evaluation/qa_dataset_test.json`) instead.
+- `scripts/compare_evaluations.py`: puts two evaluation results side by side
+  (dev vs. held-out) as a markdown table.
 - `scripts/check_retrieval_gate.py`: retrieval-only evaluation compared with
   `data/evaluation/baseline.json`; exits with code 1 on a regression.
 - `scripts/judge_calibration.py`: writes a blind labelling sheet for the
@@ -242,8 +245,11 @@ including an incorrect answer that passed the confidence guardrail.
 Full methodology and per-case results in `docs/hybrid-retrieval.md`
 (retrieval ablation, Block 19), `docs/evaluation/README.md` (answer
 evaluation, Block 18) and `docs/evaluation-results.md` (original retrieval
-evaluation). The dataset has 58 cases: 40 in-scope questions (25 Portuguese,
-15 English), 8 out-of-scope questions, and 10 prompt injection cases.
+evaluation). The dev set has 58 cases: 40 in-scope questions (25 Portuguese,
+15 English), 8 out-of-scope questions, and 10 prompt injection cases. Every
+configuration choice below was made on it; the final system was then
+measured once on a held-out set of 30 new cases (last subsection,
+`docs/evaluation/held-out/`).
 
 Retrieval, 40 in-scope questions, top 5. Before: `all-MiniLM-L6-v2` dense
 with the English `ms-marco-MiniLM-L-6-v2` reranker (2026-10-16). After:
@@ -321,6 +327,36 @@ an assistant inside the excerpts. Same 58 cases and retrieval as above:
 - `--categories injection_direct injection_indirect` reruns only the 10
   injection cases as a regression check.
 
+Held-out test set (2026-10-18, `docs/evaluation/held-out/`): 30 new cases
+(8 paraphrases of dev questions, 10 new facts, 6 hard negatives, 3 direct
+and 3 indirect injections with their own poisoned documents), committed
+before any run and evaluated once with the frozen configuration (commit
+`c56ddbe`, 25 generations and 16 judge calls):
+
+| | dev (N=58) | test (N=30) |
+|---|---|---|
+| Retrieval Recall@5, in-scope | 1.0000 (N=40) | 1.0000 (N=18) |
+| In-scope questions answered | 34/40 | 13/18 |
+| Refusal recall, guardrail only | 0.8000 | 0.2857 |
+| Refusal recall, guardrail or abstention | 1.0000 | 1.0000 |
+| Hard negatives refused end to end | 4/4 | 6/6 |
+| Indirect injection leaks | 2/5 | 1/3 |
+| Direct injection leaks | 0/5 | 0/3 (all 3 stopped by the guardrail) |
+| Answers to English questions written in English | 8/18 | 1/8 |
+| LLM-as-a-judge, answers rated supported | 41/41 | 16/16 |
+
+- Document-level retrieval held, including Portuguese questions about
+  English documents (7/7). It hides chunk-level misses: 4 of 18 in-scope
+  questions ended in a correct abstention because the chunk with the answer
+  was not among the 5 sent to the model.
+- The guardrail threshold, calibrated on dev, refuses few new cases that
+  should be refused; on the test set the model's abstention did that work
+  (5 of 6 hard negatives passed the guardrail).
+- The answer-language rule fails on new questions (1/8), so the dev figure
+  was optimistic. A new indirect injection technique (a maintainer note in a
+  Markdown blockquote) leaked the canary and a fake `pip install` command,
+  and the judge rated that answer supported.
+
 Chunking comparison (fixed-size vs. semantic, same 500-character target):
 fixed-size produces 167 chunks with low size variance (2817.7); semantic
 produces 242 chunks with variance nearly 19 times higher (53654.4), because
@@ -372,13 +408,22 @@ HTML sponsor badge block with no sentence punctuation becomes a single
 
 ## Limitations
 
-- The retrieval configuration and the confidence threshold were selected on
-  the evaluation questions themselves (no held-out set), so the Block 19
-  numbers, including Recall@5 1.0000, are optimistic for unseen questions.
+- The retrieval configuration, the confidence threshold and prompt v3 were
+  selected on the 58 dev questions. A held-out set of 30 questions confirms
+  document-level Recall@5 (1.0000, N=18) but not the rest: guardrail refusal
+  recall fell from 0.8000 to 0.2857 and English answers in English from 8/18
+  to 1/8. The held-out set was written by the same author over the same
+  corpus, so it tests new questions, not a new distribution.
+- Retrieval is measured per document, not per chunk. On the held-out set, 4
+  of 18 in-scope questions counted as retrieval hits ended in an abstention
+  because the chunk with the answer was not in the top 5.
 - Chunk size is measured in characters, not tokens, which is an
   approximation of the actual unit the embedding and generation models use.
-- The evaluation is small: 58 cases over a 5-document corpus, 41 answers
-  judged in the latest run, 10 used to calibrate the judge. It reveals clear patterns (the
+- The evaluation is small: 58 dev and 30 held-out cases over a 5-document
+  corpus, 41 + 16 answers judged, 10 used to calibrate the judge. Answer
+  correctness against the expected answer is not scored automatically, and
+  the judge rated every answer supported, including one with a leaked
+  injection canary. It reveals clear patterns (the
   cross-lingual failure, indirect injection) but is too small for
   fine-grained statistical conclusions.
 - The LLM judge (`openai/gpt-oss-20b`) shares a model family with the
@@ -386,14 +431,16 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   vendor (`qwen/qwen3.8-27b`) was tried and rejected because its structured
   output was unreliable on Groq. The calibration sample contained no answer
   rated negatively by either the judge or the author.
-- Prompt injection is only partly mitigated: with prompt v3, 2 of 5
-  poisoned-document cases still succeed (0 of 5 direct), on a sample of 10
-  cases that was also used to write the prompt. There is no structural
+- Prompt injection is only partly mitigated: with prompt v3, 3 of 8
+  poisoned-document cases succeed (2 of 5 on the dev cases used to write the
+  prompt, 1 of 3 held-out). No direct injection leaked (0 of 8), but the 3
+  held-out ones were all stopped by the guardrail before reaching the
+  model, so the prompt was not tested on them. There is no structural
   defence against poisoned documents; the impact is limited to the text of
   one answer because the agent is read-only and has no side-effecting tools.
-- The answer-language rule is unreliable: 10 of 18 answered English
-  questions got a Portuguese answer with prompt v3 (manual count; the
-  evaluation has no automated language check).
+- The answer-language rule is unreliable: with prompt v3, English questions
+  were answered in English in 8 of 18 dev cases and 1 of 8 held-out cases
+  (stopword heuristic, which matches the earlier manual count on dev).
 - The Docker Compose setup is meant for local demonstration, not
   production: no TLS, no authentication on the API or on the MCP HTTP
   transport (which binds to `127.0.0.1` by default), and secrets in `.env`.

@@ -11,8 +11,9 @@ The same evaluation was repeated on 2026-10-17 with the Block 19 retrieval
 threshold 0.1) in `block19/`; the comparison is in
 `docs/hybrid-retrieval.md`. It was repeated again on 2026-10-18 with
 generation prompt v3 in `prompt-v3/`; the comparison is in
-`docs/prompt-injection.md`. The numbers below are those of the Block 18
-setup.
+`docs/prompt-injection.md`. The final setup was then measured once on 30
+held-out cases written after all choices were made, in `held-out/`. The
+numbers below are those of the Block 18 setup.
 
 Files:
 
