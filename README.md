@@ -297,6 +297,25 @@ Block 18 run is in `docs/evaluation/`):
   indirect injections as unfaithful, because the injected text is in the
   context; only the deterministic canary check caught them.
 
+Generation prompt v3 (2026-10-18, `docs/prompt-injection.md`,
+`docs/evaluation/prompt-v3/`): question and excerpts between delimiters,
+explicit rules for orders embedded in the question and for text addressed to
+an assistant inside the excerpts. Same 58 cases and retrieval as above:
+
+- Prompt injection leaks: direct 1/5 -> 0/5, indirect 3/5 -> 2/5. The
+  prompt was written while looking at these cases, so the drop is optimistic
+  for unseen injections.
+- No in-scope or out-of-scope decision changed (34 of 40 in-scope questions
+  answered); 41/41 answers cite only sources in the context; judge
+  faithfulness 41/41 supported.
+- English questions answered in English: 2 -> 8 of 18 (manual count). The
+  answer-language rule is still ignored in most English cases.
+- Llama Prompt Guard 2 (86M, via Groq) was tested as an input classifier and
+  rejected: it flags the two classic jailbreaks (0.999) but scores the three
+  embedded instructions between 0.0005 and 0.0099.
+- `--categories injection_direct injection_indirect` reruns only the 10
+  injection cases as a regression check.
+
 Chunking comparison (fixed-size vs. semantic, same 500-character target):
 fixed-size produces 167 chunks with low size variance (2817.7); semantic
 produces 242 chunks with variance nearly 19 times higher (53654.4), because
@@ -353,9 +372,14 @@ HTML sponsor badge block with no sentence punctuation becomes a single
   vendor (`qwen/qwen3.8-27b`) was tried and rejected because its structured
   output was unreliable on Groq. The calibration sample contained no answer
   rated negatively by either the judge or the author.
-- Prompt injection is not mitigated: the generation prompt tells the model
-  to treat retrieved text and the question as data, yet 3 of 5
-  poisoned-document cases and 1 of 5 direct cases still succeeded.
+- Prompt injection is only partly mitigated: with prompt v3, 2 of 5
+  poisoned-document cases still succeed (0 of 5 direct), on a sample of 10
+  cases that was also used to write the prompt. There is no structural
+  defence against poisoned documents; the impact is limited to the text of
+  one answer because the agent is read-only and has no side-effecting tools.
+- The answer-language rule is unreliable: 10 of 18 answered English
+  questions got a Portuguese answer with prompt v3 (manual count; the
+  evaluation has no automated language check).
 - The Docker Compose setup runs the API container as root, without restart
   policies or healthchecks, and is meant for local demonstration, not
   production.

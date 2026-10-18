@@ -5,6 +5,7 @@ import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import get_args
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -22,6 +23,7 @@ from src.evaluation.dataset import (  # noqa: E402
     DATASET_V2_PATH,
     POISONED_DIR,
     POISONED_SOURCE_PREFIX,
+    Category,
     EvalCase,
     load_cases,
 )
@@ -381,12 +383,20 @@ def main() -> None:
     )
     parser.add_argument("--skip-judge", action="store_true")
     parser.add_argument("--ids", type=int, nargs="*", help="Corre so estes casos.")
+    parser.add_argument(
+        "--categories",
+        nargs="*",
+        choices=get_args(Category),
+        help="Corre so estas categorias (ex.: a suite de injecao como regressao).",
+    )
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     args = parser.parse_args()
 
     cases = load_cases()
     if args.ids:
         cases = [case for case in cases if case.id in set(args.ids)]
+    if args.categories:
+        cases = [case for case in cases if case.category in set(args.categories)]
     cases_by_id = {case.id: case for case in cases}
 
     client = get_client()

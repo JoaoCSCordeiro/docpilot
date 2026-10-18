@@ -248,7 +248,8 @@ verdicts. Langfuse was not running, so this run has no traces.
   0/5 of Block 18 was a side effect of the English reranker giving that
   question a low score, not resistance of the generator; the better reranker
   removed that accidental protection. It would also pass at the old
-  threshold of 0.5. Not mitigated in this block.
+  threshold of 0.5. Not mitigated in this block; generation prompt v3
+  (Block 19.5, `docs/prompt-injection.md`) removed this leak on 2026-10-18.
 - The 4 in-scope abstentions (cases 10, 11, 25, 30) all had the expected
   document in the top 5. Recall@5 is measured per document, not per chunk,
   so this suggests the chunk holding the answer was not among the five; not
