@@ -1,8 +1,9 @@
 import mongomock
 import pytest
-from httpx import Headers
+from httpx import Headers, Request
 from mcp import Client
 from mcp.server.mcpserver.exceptions import ToolError
+from openai import APIConnectionError
 from pymongo.errors import ServerSelectionTimeoutError
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
@@ -226,6 +227,22 @@ async def test_ask_docpilot_surfaces_graph_factory_error() -> None:
 
     assert result.is_error is True
     assert "GROQ_API_KEY" in result.content[0].text
+
+
+class AzureFailingGraph:
+    def invoke(self, state: dict) -> dict:
+        raise APIConnectionError(
+            request=Request("POST", "https://example.openai.azure.com/openai/deployments/x")
+        )
+
+
+@pytest.mark.anyio
+async def test_ask_docpilot_reports_azure_openai_failures_as_tool_errors() -> None:
+    async with Client(_server(graph_factory=lambda: AzureFailingGraph())) as client:
+        result = await client.call_tool("ask_docpilot", {"question": "Em que se baseia o FastAPI?"})
+
+    assert result.is_error is True
+    assert "LLM provider request failed (APIConnectionError)" in result.content[0].text
 
 
 @pytest.mark.anyio

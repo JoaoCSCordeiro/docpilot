@@ -185,6 +185,18 @@ def get_shared_rate_limiter(provider: str = GROQ) -> RateLimiter:
         return _shared_rate_limiters[provider]
 
 
+def missing_llm_settings(provider: str | None = None) -> list[str]:
+    provider = provider or settings.llm_provider
+    if provider == AZURE_OPENAI:
+        required = {
+            "AZURE_OPENAI_ENDPOINT": settings.azure_openai_endpoint,
+            "AZURE_OPENAI_API_KEY": settings.azure_openai_api_key,
+        }
+    else:
+        required = {"GROQ_API_KEY": settings.groq_api_key}
+    return [name for name, value in required.items() if not value]
+
+
 def get_llm(
     model: str | None = None,
     max_tokens: int | None = None,

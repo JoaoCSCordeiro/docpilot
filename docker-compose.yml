@@ -1,9 +1,14 @@
 services:
   qdrant:
     image: qdrant/qdrant:v1.19.0
+    # Portas so em 127.0.0.1: Qdrant, Mongo e Redis nao tem autenticacao, e publicadas em
+    # todas as interfaces outra maquina da mesma rede podia apagar o indice ou escrever
+    # uma resposta na cache LLM que a API servia como sua. O fluxo k3s (infra/k8s) corre
+    # numa distro WSL2 que so chega ao Qdrant e ao Mongo pelo gateway WSL; para essa demo,
+    # DOCPILOT_BIND_ADDRESS=0.0.0.0 abre estas duas portas.
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "${DOCPILOT_BIND_ADDRESS:-127.0.0.1}:6333:6333"
+      - "${DOCPILOT_BIND_ADDRESS:-127.0.0.1}:6334:6334"
     volumes:
       - qdrant_storage:/qdrant/storage
     restart: unless-stopped
@@ -22,7 +27,7 @@ services:
   mongo:
     image: mongo:7.0
     ports:
-      - "27017:27017"
+      - "${DOCPILOT_BIND_ADDRESS:-127.0.0.1}:27017:27017"
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
@@ -42,7 +47,7 @@ services:
     # chamada a Groq, por isso e das ultimas a ser despejada.
     command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -55,7 +60,7 @@ services:
   api:
     build: .
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333

@@ -21,3 +21,6 @@ infra/terraform-azure/terraform.tfvars
 # Azure Functions: configuracao local (pode conter connection strings)
 functions/local.settings.json
 *.tfplan
+
+# Skills de terceiros (ponytail-audit, security-audit) usadas no Fecho
+.claude/skills/

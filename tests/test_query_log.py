@@ -1,8 +1,14 @@
 import datetime as dt
 
 import mongomock
+from pymongo.errors import AutoReconnect
 
-from src.agent.query_log import get_low_confidence_queries, get_recent_queries, save_query_trace
+from src.agent.query_log import (
+    get_low_confidence_queries,
+    get_recent_queries,
+    save_query_trace,
+    try_save_query_trace,
+)
 from src.retrieval.retriever import RetrievedChunk
 
 
@@ -70,3 +76,19 @@ def test_get_low_confidence_queries_filters_by_threshold() -> None:
     low_confidence = get_low_confidence_queries(collection, threshold=0.5)
 
     assert [doc["question"] for doc in low_confidence] == ["duvidosa"]
+
+
+class FailingCollection:
+    def insert_one(self, document: dict) -> None:
+        raise AutoReconnect("mongo down")
+
+
+def test_try_save_query_trace_reports_success() -> None:
+    collection = _collection()
+
+    assert try_save_query_trace(collection, _fake_state()) is True
+    assert collection.count_documents({}) == 1
+
+
+def test_try_save_query_trace_swallows_mongo_errors() -> None:
+    assert try_save_query_trace(FailingCollection(), _fake_state()) is False

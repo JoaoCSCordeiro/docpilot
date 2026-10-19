@@ -1,6 +1,7 @@
 import mongomock
 import pytest
 from fastapi.testclient import TestClient
+from pymongo.errors import ServerSelectionTimeoutError
 
 from src.api.main import app, get_graph, get_query_log_collection
 from src.config import settings
@@ -21,6 +22,11 @@ def client() -> TestClient:
         "query_traces"
     ]
     return TestClient(app)
+
+
+class FailingCollection:
+    def insert_one(self, document: dict) -> None:
+        raise ServerSelectionTimeoutError("mongo down")
 
 
 def _override_graph(result: dict) -> None:
@@ -85,6 +91,23 @@ def test_query_endpoint_returns_sources_of_reranked_chunks(client: TestClient) -
     response = client.post("/query", json={"question": "O que e o FastAPI?"})
 
     assert response.json()["sources"] == [{"source": "fastapi.md", "position": 3, "score": 1.6}]
+
+
+def test_query_endpoint_still_answers_when_the_query_log_is_down() -> None:
+    _override_graph(
+        {
+            "query": "O que e o FastAPI?",
+            "answer": "FastAPI e uma framework web para Python.",
+            "is_confident": True,
+            "confidence": 0.83,
+        }
+    )
+    app.dependency_overrides[get_query_log_collection] = lambda: FailingCollection()
+
+    response = TestClient(app).post("/query", json={"question": "O que e o FastAPI?"})
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "FastAPI e uma framework web para Python."
 
 
 def test_query_endpoint_rejects_empty_question(client: TestClient) -> None:

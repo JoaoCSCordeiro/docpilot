@@ -27,11 +27,20 @@ Ver `docs/k3s-setup.md` para a instalacao completa do k3s (WSL2 +
 Ubuntu + correcao de cgroups). Assumindo o cluster ja instalado e
 `kubectl` configurado dentro da distro Ubuntu:
 
-1. Subir Qdrant e MongoDB no host (fora do k3s):
+1. Subir Qdrant e MongoDB no host (fora do k3s). Por omissao o
+   `docker-compose.yml` publica as portas so em `127.0.0.1`, que a distro
+   WSL2 nao alcanca; para esta demo, publica-las em todas as interfaces
+   (PowerShell):
 
    ```
-   docker compose up -d qdrant mongo
+   $env:DOCPILOT_BIND_ADDRESS = "0.0.0.0"; docker compose up -d qdrant mongo
    ```
+
+   Nota (2026-10-19): nesta maquina, a distro Ubuntu resolve
+   `host.docker.internal` para um IP do Windows que nao responde; so o
+   gateway WSL (`ip route`, ex.: `172.22.144.1`) chegou ao Qdrant. O
+   `deployment.yaml` nao foi alterado nem re-testado no k3s depois desta
+   observacao.
 
 2. Construir a imagem da API com o Docker Desktop (o mesmo daemon ja
    usado no Bloco 10 — k3s nao usa o daemon Docker diretamente, usa

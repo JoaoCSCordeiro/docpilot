@@ -2,7 +2,7 @@ import fakeredis
 import pytest
 
 from src.agent import llm as llm_module
-from src.agent.llm import get_llm, get_shared_rate_limiter
+from src.agent.llm import AZURE_OPENAI, GROQ, get_llm, get_shared_rate_limiter, missing_llm_settings
 from src.agent.rate_limiter import RedisTokenBucket, TokenBucket
 from src.config import settings
 
@@ -113,3 +113,24 @@ def test_shared_rate_limiter_falls_back_to_memory_when_redis_is_unreachable(
     monkeypatch.setattr(llm_module, "get_redis_client", lambda: None)
 
     assert isinstance(get_shared_rate_limiter(), TokenBucket)
+
+
+def test_missing_llm_settings_checks_only_the_selected_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "groq_api_key", "")
+    monkeypatch.setattr(settings, "azure_openai_endpoint", "https://example.openai.azure.com/")
+    monkeypatch.setattr(settings, "azure_openai_api_key", "not-a-real-key")
+
+    assert missing_llm_settings(AZURE_OPENAI) == []
+    assert missing_llm_settings(GROQ) == ["GROQ_API_KEY"]
+
+
+def test_missing_llm_settings_lists_every_missing_azure_setting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "llm_provider", AZURE_OPENAI)
+    monkeypatch.setattr(settings, "azure_openai_endpoint", "")
+    monkeypatch.setattr(settings, "azure_openai_api_key", "")
+
+    assert missing_llm_settings() == ["AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY"]

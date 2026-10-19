@@ -1,5 +1,7 @@
 -r requirements.txt
 ruff>=0.6,<1.0
+pytest>=8.0,<9.0
+mongomock>=4.1,<5.0
 fakeredis[lua]>=2.40,<3.0
 # Bloco 21: demo local da Azure Function (Azurite) e upload de blobs
 azure-functions>=1.25,<2.0

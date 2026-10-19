@@ -1,4 +1,3 @@
-import logging
 from functools import cache
 from typing import Annotated, Callable, Literal, Protocol
 
@@ -6,16 +5,16 @@ from groq import APIError as GroqAPIError
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
+from openai import APIError as OpenAIAPIError
 from pydantic import BaseModel, Field
 from pymongo.collection import Collection
-from pymongo.errors import PyMongoError
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ApiException as QdrantApiException
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from src.agent.graph import run_agent
 from src.agent.guardrail import confidence_score
-from src.agent.query_log import save_query_trace
+from src.agent.query_log import try_save_query_trace
 from src.config import settings
 from src.observability.tracing import flush, observation, request_trace
 from src.retrieval.reranker import rerank
@@ -24,8 +23,6 @@ from src.retrieval.vector_store import count_chunks_by_source
 
 MAX_TOP_K = 20
 MAX_QUESTION_LENGTH = settings.max_question_length
-
-logger = logging.getLogger(__name__)
 
 SERVER_INSTRUCTIONS = (
     "DocPilot answers questions about a small corpus of technical documentation "
@@ -113,8 +110,8 @@ def build_server(
     query_log: Collection | None = None,
 ) -> MCPServer:
     effective_collection_name = collection_name or settings.qdrant_collection_name
-    # O grafo carrega o LLM (e exige GROQ_API_KEY): so e construido na primeira chamada a
-    # ask_docpilot, para search_docs e list_sources funcionarem sem chave.
+    # O grafo carrega o LLM (e exige as credenciais do provider): so e construido na
+    # primeira chamada a ask_docpilot, para search_docs e list_sources funcionarem sem elas.
     get_graph = cache(graph_factory)
 
     server = MCPServer(name="docpilot", instructions=SERVER_INSTRUCTIONS)
@@ -182,16 +179,13 @@ def build_server(
             state = run_agent(get_graph(), question, entrypoint="mcp")
         except QdrantApiException as exc:
             raise _qdrant_tool_error(exc, effective_collection_name) from exc
-        except GroqAPIError as exc:
+        except (GroqAPIError, OpenAIAPIError) as exc:
             raise ToolError(f"The LLM provider request failed ({type(exc).__name__}).") from exc
         finally:
             flush()
 
         if query_log is not None:
-            try:
-                save_query_trace(query_log, state)
-            except PyMongoError as exc:
-                logger.warning("Query trace not saved to MongoDB: %s", type(exc).__name__)
+            try_save_query_trace(query_log, state)
 
         return AskResult(
             decision="answered" if state["is_confident"] else "refused",
