@@ -24,3 +24,6 @@ functions/local.settings.json
 
 # Skills de terceiros (ponytail-audit, security-audit) usadas no Fecho
 .claude/skills/
+
+# Relatorio privado da extensao (para o CV)
+RELATORIO-EXTENSAO.md
